@@ -6,6 +6,8 @@ import (
 	pathpkg "path"
 	"path/filepath"
 	"strings"
+
+	"github.com/sourcegraph/docsite/markdown"
 )
 
 // resolveAndReadAll resolves a URL path to a file path, adding a file extension (.md) and a
@@ -27,7 +29,7 @@ func resolveAndReadAll(fs http.FileSystem, path string) (filePath string, data [
 
 type sourceFile struct {
 	FilePath    string
-	Data        []byte
+	Doc         markdown.Document
 	Breadcrumbs []breadcrumbEntry
 }
 

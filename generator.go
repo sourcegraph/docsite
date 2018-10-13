@@ -28,10 +28,7 @@ func (g *Generator) getTemplate() (*template.Template, error) {
 			return g.AssetsURLPathPrefix + path
 		},
 		"markdown": func(sourceFile sourceFile) template.HTML {
-			return template.HTML(markdown.Run(sourceFile.Data, markdown.Options{
-				Base:           &url.URL{Path: "/" + filepath.Dir(sourceFile.FilePath) + "/"},
-				StripURLSuffix: ".md",
-			}))
+			return template.HTML(sourceFile.Doc.HTML)
 		},
 	})
 
@@ -70,9 +67,16 @@ func (g *Generator) getSourceFile(path string) (*sourceFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	doc, err := markdown.Run(data, markdown.Options{
+		Base:           &url.URL{Path: "/" + filepath.Dir(filePath) + "/"},
+		StripURLSuffix: ".md",
+	})
+	if err != nil {
+		return nil, errors.WithMessage(err, fmt.Sprintf("parsing and rendering Markdown for %s", filePath))
+	}
 	return &sourceFile{
 		FilePath:    filePath,
-		Data:        data,
+		Doc:         *doc,
 		Breadcrumbs: makeBreadcrumbEntries(path),
 	}, nil
 }

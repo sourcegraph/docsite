@@ -1,2 +1,2 @@
-// Package markdown converts Markdown text to HTML
+// Package markdown parses and HTML-renders Markdown documents.
 package markdown
