@@ -20,12 +20,19 @@ type Document struct {
 
 	// HTML is the rendered Markdown content.
 	HTML []byte
+
+	// Tree is the tree of sections (used to show a table of contents).
+	Tree []*SectionNode
 }
 
 // Options customize how Run parses and HTML-renders the Markdown document.
 type Options struct {
 	Base           *url.URL
 	StripURLSuffix string
+}
+
+func newParser() *blackfriday.Markdown {
+	return blackfriday.New(blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs))
 }
 
 // Run parses and HTML-renders a Markdown document (with optional metadata in the Markdown "front
@@ -36,9 +43,7 @@ func Run(input []byte, opt Options) (*Document, error) {
 		return nil, err
 	}
 
-	parser := blackfriday.New(blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs))
-	ast := parser.Parse(markdown)
-
+	ast := newParser().Parse(markdown)
 	renderer := &renderer{
 		Options: opt,
 		HTMLRenderer: blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
@@ -53,6 +58,7 @@ func Run(input []byte, opt Options) (*Document, error) {
 	doc := Document{
 		Meta: meta,
 		HTML: buf.Bytes(),
+		Tree: newTree(ast),
 	}
 	if meta.Title != "" {
 		doc.Title = meta.Title
