@@ -5,62 +5,53 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"text/template"
 
 	"github.com/sourcegraph/docsite"
 )
 
+var usage = template.Must(template.New("").Parse(`docsite is a tool for generating static documentation sites from Markdown files and HTML templates.
+For more information, see https://github.com/sourcegraph/docsite.
+
+Usage:
+
+  docsite [options] command [command options]
+
+The options are:
+
+{{call .FlagUsage }}
+The commands are:
+{{range .Commands}}
+  {{printf "%- 15s" .NameAndAliases}} {{.ShortDescription}}
+{{- end}}
+
+Use "docsite [command] -h" for more information about a command.
+
+`))
+
 var (
-	srcDir    = flag.String("sources", "../sourcegraph/doc", "path to dir containing .md source files")
-	tmplFile  = flag.String("templates", "templates", "path to dir containing .html template files")
-	assetsDir = flag.String("assets", "assets", "path to dir containing assets (styles, scripts, images, etc.)")
-	outDir    = flag.String("out", "out", "path to output dir where .html files are written")
-	httpAddr  = flag.String("http", ":8000", "HTTP listen address for previewing")
+	sourcesDir   = flag.String("sources", "../sourcegraph/doc", "path to `dir` containing .md source files")
+	templatesDir = flag.String("templates", "templates", "path to `dir` containing .html template files")
+	assetsDir    = flag.String("assets", "assets", "path to `dir` containing assets (styles, scripts, images, etc.)")
 )
+
+// commands contains all registered subcommands.
+var commands commander
+
+func main() {
+	log.SetFlags(0)
+	log.SetPrefix("")
+	commands.run(flag.CommandLine, "docsite", usage, os.Args[1:])
+}
 
 const (
 	assetsURLPathPrefix = "/assets/"
 )
 
-func main() {
-	log.SetFlags(0)
-	flag.Parse()
-
-	gen := docsite.Generator{
-		Sources:             http.Dir(*srcDir),
-		Templates:           http.Dir(*tmplFile),
+func generatorFromFlags() docsite.Generator {
+	return docsite.Generator{
+		Sources:             http.Dir(*sourcesDir),
+		Templates:           http.Dir(*templatesDir),
 		AssetsURLPathPrefix: assetsURLPathPrefix,
 	}
-	log.Println("# Preview HTTP server listening on", *httpAddr)
-	log.Fatal(http.ListenAndServe(*httpAddr, &handler{gen: gen}))
-}
-
-type handler struct {
-	gen docsite.Generator
-}
-
-func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	if strings.HasPrefix(r.URL.Path, assetsURLPathPrefix) {
-		http.StripPrefix(assetsURLPathPrefix, http.FileServer(http.Dir(*assetsDir))).ServeHTTP(w, r)
-		return
-	}
-
-	path := strings.TrimPrefix(r.URL.Path, "/")
-	out, err := h.gen.Generate(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			http.Error(w, "not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "error: "+err.Error(), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "max-age=0")
-	w.Write(out)
 }
