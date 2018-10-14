@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sourcegraph/docsite/markdown"
@@ -62,11 +63,30 @@ func (g *Generator) getTemplate() (*template.Template, error) {
 	return tmpl, nil
 }
 
-func (g *Generator) getSourceFile(path string) (*sourceFile, error) {
-	filePath, data, err := resolveAndReadAll(g.Sources, path)
+func (g *Generator) Generate(path string, isResolvedPath bool) ([]byte, error) {
+	tmpl, err := g.getTemplate()
 	if err != nil {
 		return nil, err
 	}
+
+	var filePath string
+	var data []byte
+	if isResolvedPath {
+		filePath = path
+		path = strings.TrimSuffix(strings.TrimPrefix(path, "/"), ".md")
+		var err error
+		data, err = readFile(g.Sources, filePath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		filePath, data, err = resolveAndReadAll(g.Sources, path)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	doc, err := markdown.Run(data, markdown.Options{
 		Base:           &url.URL{Path: "/" + filepath.Dir(filePath) + "/"},
 		StripURLSuffix: ".md",
@@ -74,22 +94,10 @@ func (g *Generator) getSourceFile(path string) (*sourceFile, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("parsing and rendering Markdown for %s", filePath))
 	}
-	return &sourceFile{
+	src := &sourceFile{
 		FilePath:    filePath,
 		Doc:         *doc,
 		Breadcrumbs: makeBreadcrumbEntries(path),
-	}, nil
-}
-
-func (g *Generator) Generate(path string) ([]byte, error) {
-	tmpl, err := g.getTemplate()
-	if err != nil {
-		return nil, err
-	}
-
-	src, err := g.getSourceFile(path)
-	if err != nil {
-		return nil, err
 	}
 
 	var buf bytes.Buffer

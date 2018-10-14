@@ -22,7 +22,7 @@ func TestGenerator(t *testing.T) {
 		AssetsURLPathPrefix: "/assets/",
 	}
 
-	data, err := g.Generate("a/b/c")
+	data, err := g.Generate("a/b/c", false)
 	if err != nil {
 		t.Fatal(err)
 	}

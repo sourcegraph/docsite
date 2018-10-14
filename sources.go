@@ -18,7 +18,6 @@ func resolveAndReadAll(fs http.FileSystem, path string) (filePath string, data [
 		path = "README"
 	}
 
-	filePath = path + ".md"
 	data, err = readFile(fs, filePath)
 	if os.IsNotExist(err) && !strings.HasSuffix(path, string(os.PathSeparator)+"index") {
 		// Try looking up the path as a directory and reading its index file (index.md).
