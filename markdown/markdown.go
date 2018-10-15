@@ -27,11 +27,11 @@ type Document struct {
 
 // Options customize how Run parses and HTML-renders the Markdown document.
 type Options struct {
-	Base           *url.URL
-	StripURLSuffix string
+	Base             *url.URL
+	StripURLSuffixes []string
 }
 
-func newParser() *blackfriday.Markdown {
+func NewParser() *blackfriday.Markdown {
 	return blackfriday.New(blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs))
 }
 
@@ -43,7 +43,7 @@ func Run(input []byte, opt Options) (*Document, error) {
 		return nil, err
 	}
 
-	ast := newParser().Parse(markdown)
+	ast := NewParser().Parse(markdown)
 	renderer := &renderer{
 		Options: opt,
 		HTMLRenderer: blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
@@ -97,8 +97,8 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 					node.LinkData.Destination = []byte(dest.String())
 				}
 			}
-			if r.Options.StripURLSuffix != "" {
-				node.LinkData.Destination = bytes.TrimSuffix(node.LinkData.Destination, []byte(r.Options.StripURLSuffix))
+			for _, suffix := range r.Options.StripURLSuffixes {
+				node.LinkData.Destination = bytes.TrimSuffix(node.LinkData.Destination, []byte(suffix))
 			}
 		}
 	case blackfriday.HTMLBlock, blackfriday.HTMLSpan:

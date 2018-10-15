@@ -51,7 +51,7 @@ func (g *Generator) getTemplate() (*template.Template, error) {
 		if filepath.Ext(e.Name()) != ".html" {
 			continue
 		}
-		data, err := readFile(g.Templates, e.Name())
+		data, err := ReadFile(g.Templates, e.Name())
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("reading template %s", e.Name()))
 		}
@@ -75,7 +75,7 @@ func (g *Generator) Generate(path string, isResolvedPath bool) ([]byte, error) {
 		filePath = path
 		path = strings.TrimSuffix(strings.TrimPrefix(path, "/"), ".md")
 		var err error
-		data, err = readFile(g.Sources, filePath)
+		data, err = ReadFile(g.Sources, filePath)
 		if err != nil {
 			return nil, err
 		}
@@ -88,8 +88,8 @@ func (g *Generator) Generate(path string, isResolvedPath bool) ([]byte, error) {
 	}
 
 	doc, err := markdown.Run(data, markdown.Options{
-		Base:           &url.URL{Path: "/" + filepath.Dir(filePath) + "/"},
-		StripURLSuffix: ".md",
+		Base:             &url.URL{Path: "/" + filepath.Dir(filePath) + "/"},
+		StripURLSuffixes: []string{".md", "/index"},
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("parsing and rendering Markdown for %s", filePath))

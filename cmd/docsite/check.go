@@ -8,7 +8,11 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strings"
 
+	"github.com/russross/blackfriday"
+	"github.com/sourcegraph/docsite"
+	"github.com/sourcegraph/docsite/markdown"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -44,7 +48,38 @@ func init() {
 			if skipFile(path) {
 				return nil
 			}
-			data, err := gen.Generate(path, true)
+
+			data, err := docsite.ReadFile(gen.Sources, path)
+			if err != nil {
+				return err
+			}
+			ast := markdown.NewParser().Parse(data)
+			ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+				if entering {
+					if node.Type == blackfriday.Link || node.Type == blackfriday.Image {
+						// Reject absolute paths because they will break when browsing the docs on
+						// GitHub/Sourcegraph in the repository, or if the root path ever changes.
+						if bytes.HasPrefix(node.LinkData.Destination, []byte("/")) {
+							problems = append(problems, fmt.Sprintf("%s: must use relative, not absolute, link to %s", path, node.LinkData.Destination))
+						}
+					}
+
+					if node.Type == blackfriday.Link {
+						// Require that relative paths link to the actual .md file, so that browsing
+						// docs on the file system works.
+						u, err := url.Parse(string(node.LinkData.Destination))
+						if err != nil {
+							problems = append(problems, fmt.Sprintf("%s: invalid URL %q", path, node.LinkData.Destination))
+						} else if !u.IsAbs() && u.Path != "" && !strings.HasSuffix(u.Path, ".md") {
+							problems = append(problems, fmt.Sprintf("%s: must link to .md file, not %s", path, u.Path))
+						}
+					}
+				}
+
+				return blackfriday.GoToNext
+			})
+
+			data, err = gen.Generate(path, true)
 			if err != nil {
 				return err
 			}
@@ -59,14 +94,8 @@ func init() {
 						return
 					}
 
-					u, err := url.Parse(urlStr)
-					if err != nil {
+					if _, err := url.Parse(urlStr); err != nil {
 						problems = append(problems, fmt.Sprintf("%s: invalid URL %q", path, urlStr))
-					}
-
-					// Resolve relative URLs.
-					if !u.IsAbs() {
-						//u = &url.URL{Path}
 					}
 
 					rr := httptest.NewRecorder()

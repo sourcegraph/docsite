@@ -14,7 +14,7 @@ import (
 // directory index filename as needed. It also returns the file content.
 func resolveAndReadAll(fs http.FileSystem, path string) (filePath string, data []byte, err error) {
 	filePath = path + ".md"
-	data, err = readFile(fs, filePath)
+	data, err = ReadFile(fs, filePath)
 	if isDir(fs, filePath) || (os.IsNotExist(err) && !strings.HasSuffix(path, string(os.PathSeparator)+"index")) {
 		// Try looking up the path as a directory and reading its index file (index.md).
 		return resolveAndReadAll(fs, filepath.Join(path, "index"))

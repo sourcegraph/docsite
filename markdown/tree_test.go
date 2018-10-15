@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewTree(t *testing.T) {
-	ast := newParser().Parse([]byte(`# 1a
+	ast := NewParser().Parse([]byte(`# 1a
 ## 2a
 ### 3a
 #### 4
