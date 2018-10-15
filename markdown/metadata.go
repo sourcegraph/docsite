@@ -3,7 +3,7 @@ package markdown
 import (
 	"bytes"
 
-	"github.com/ghodss/yaml"
+	"gopkg.in/yaml.v2"
 )
 
 // Metadata is document metadata in the "front matter" of a Markdown document.
