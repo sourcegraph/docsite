@@ -53,24 +53,57 @@ title: Metadata title
 	})
 }
 
-func TestRelativeURL(t *testing.T) {
-	doc, err := Run([]byte("[a](./b/c)"), Options{Base: &url.URL{Path: "/d/"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := `<p><a href="/d/b/c">a</a></p>` + "\n"
-	if string(doc.HTML) != want {
-		t.Errorf("got %q, want %q", string(doc.HTML), want)
-	}
-}
+func TestRenderer(t *testing.T) {
+	t.Run("heading anchor link", func(t *testing.T) {
+		doc, err := Run([]byte(`## A ' B " C & D ? E`), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<h2 id="a-b-c-d-e"><a name="a-b-c-d-e" class="anchor" href="#a-b-c-d-e" rel="nofollow" aria-hidden="true"></a>A &lsquo; B &ldquo; C &amp; D ? E</h2>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("relative URL in Markdown links and images", func(t *testing.T) {
+		doc, err := Run([]byte("[a](b/c) ![a](b/c)"), Options{Base: &url.URL{Path: "/d/"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p><a href="/d/b/c">a</a> <img src="/d/b/c" alt="a" /></p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("got %q, want %q", string(doc.HTML), want)
+		}
+	})
+	t.Run("relative URL in HTML <a> and <img>", func(t *testing.T) {
+		doc, err := Run([]byte(`<a href="b/c" /><img src="b/c">`), Options{Base: &url.URL{Path: "/d/"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p><a href="/d/b/c"></a><img src="/d/b/c"/></p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("got %q, want %q", string(doc.HTML), want)
+		}
+	})
+	t.Run("alerts", func(t *testing.T) {
+		doc, err := Run([]byte(`> NOTE: **a**
 
-func TestHeadingAnchorLink(t *testing.T) {
-	doc, err := Run([]byte(`## A ' B " C & D ? E`), Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := `<h2 id="a-b-c-d-e"><a name="a-b-c-d-e" class="anchor" href="#a-b-c-d-e" rel="nofollow" aria-hidden="true"></a>A &lsquo; B &ldquo; C &amp; D ? E</h2>` + "\n"
-	if string(doc.HTML) != want {
-		t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
-	}
+x
+
+> WARNING: **b**`), Options{Base: &url.URL{Path: "/d/"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<aside class="note">
+<p>NOTE: <strong>a</strong></p>
+</aside>
+
+<p>x</p>
+<aside class="warning">
+
+<p>WARNING: <strong>b</strong></p>
+</aside>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("got %q, want %q", string(doc.HTML), want)
+		}
+	})
 }

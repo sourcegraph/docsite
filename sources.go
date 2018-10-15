@@ -13,17 +13,22 @@ import (
 // resolveAndReadAll resolves a URL path to a file path, adding a file extension (.md) and a
 // directory index filename as needed. It also returns the file content.
 func resolveAndReadAll(fs http.FileSystem, path string) (filePath string, data []byte, err error) {
-	if path == "" {
-		// Special-case: the top-level index file is README.md not index.md.
-		path = "README"
-	}
-
+	filePath = path + ".md"
 	data, err = readFile(fs, filePath)
-	if os.IsNotExist(err) && !strings.HasSuffix(path, string(os.PathSeparator)+"index") {
+	if isDir(fs, filePath) || (os.IsNotExist(err) && !strings.HasSuffix(path, string(os.PathSeparator)+"index")) {
 		// Try looking up the path as a directory and reading its index file (index.md).
 		return resolveAndReadAll(fs, filepath.Join(path, "index"))
 	}
 	return filePath, data, err
+}
+
+func isDir(fs http.FileSystem, path string) bool {
+	f, err := fs.Open(path)
+	if err != nil {
+		return false
+	}
+	fi, err := f.Stat()
+	return err == nil && fi.Mode().IsDir()
 }
 
 type sourceFile struct {

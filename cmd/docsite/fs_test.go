@@ -11,11 +11,11 @@ import (
 
 func TestWalkFileSystem(t *testing.T) {
 	wantAllPaths := []string{
-		"/a/b.md",
-		"/a/c/d.md",
-		"/e.md",
-		"/f/g.md",
-		"/f/h.md",
+		"a/b.md",
+		"a/c/d.md",
+		"e.md",
+		"f/g.md",
+		"f/h.md",
 	}
 	files := make(map[string]string, len(wantAllPaths))
 	for _, path := range wantAllPaths {

@@ -45,7 +45,8 @@ func main() {
 }
 
 const (
-	assetsURLPathPrefix = "/assets/"
+	assetsURLPathComponent = "assets"
+	assetsURLPathPrefix    = "/" + assetsURLPathComponent + "/"
 )
 
 func generatorFromFlags() docsite.Generator {

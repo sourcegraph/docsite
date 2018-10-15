@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -19,7 +20,7 @@ func init() {
 	handler := func(args []string) error {
 		flagSet.Parse(args)
 		log.Println("# Preview HTTP server listening on", *httpAddr)
-		return http.ListenAndServe(*httpAddr, &handler{gen: generatorFromFlags()})
+		return http.ListenAndServe(*httpAddr, newHandler())
 	}
 
 	// Register the command.
@@ -35,14 +36,29 @@ type handler struct {
 	gen docsite.Generator
 }
 
+func newHandler() *handler {
+	return &handler{gen: generatorFromFlags()}
+}
+
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
+	if r.Method != "GET" && r.Method != "HEAD" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, assetsURLPathPrefix) {
 		http.StripPrefix(assetsURLPathPrefix, http.FileServer(http.Dir(*assetsDir))).ServeHTTP(w, r)
 		return
+	}
+
+	// Serve non-Markdown file (e.g., image) in sources.
+	f, err := h.gen.Sources.Open(r.URL.Path)
+	if err == nil {
+		fi, err := f.Stat()
+		if err == nil && fi.Mode().IsRegular() {
+			w.Header().Set("Cache-Control", "max-age=0")
+			_, _ = io.Copy(w, f)
+			return
+		}
 	}
 
 	path := strings.TrimPrefix(r.URL.Path, "/")

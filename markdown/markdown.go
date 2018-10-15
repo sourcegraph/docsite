@@ -101,6 +101,33 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 				node.LinkData.Destination = bytes.TrimSuffix(node.LinkData.Destination, []byte(r.Options.StripURLSuffix))
 			}
 		}
+	case blackfriday.HTMLBlock, blackfriday.HTMLSpan:
+		// Rewrite URLs correctly when they are relative to the document, regardless of whether it's
+		// an index.md document or not.
+		if entering && r.Options.Base != nil {
+			if v, err := rewriteRelativeURLsInHTML(node.Literal, r.Options); err == nil {
+				node.Literal = v
+			}
+		}
+	case blackfriday.BlockQuote:
+		parseAside := func(literal []byte) string {
+			switch {
+			case bytes.HasPrefix(literal, []byte("NOTE:")):
+				return "note"
+			case bytes.HasPrefix(literal, []byte("WARNING:")):
+				return "warning"
+			default:
+				return ""
+			}
+		}
+		if asideClass := parseAside(node.FirstChild.FirstChild.Literal); asideClass != "" {
+			if entering {
+				fmt.Fprintf(w, "<aside class=\"%s\">\n", asideClass)
+			} else {
+				fmt.Fprint(w, "</aside>\n")
+			}
+			return blackfriday.GoToNext
+		}
 	}
 	return r.HTMLRenderer.RenderNode(w, node, entering)
 }
