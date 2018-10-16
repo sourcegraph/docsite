@@ -20,7 +20,7 @@ func (s *Site) Handler() http.Handler {
 
 	// Serve content.
 	m.Handle(s.Base.Path, http.StripPrefix(s.Base.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if filepath.Ext(r.URL.Path) != "" && !isContentPage(r.URL.Path) {
+		if IsContentAsset(r.URL.Path) {
 			// Use contentAssetsHandler for non-Markdown content (such as images).
 			contentAssetsHandler.ServeHTTP(w, r)
 			return
@@ -55,4 +55,10 @@ func (s *Site) Handler() http.Handler {
 	})))
 
 	return m
+}
+
+// IsContentAsset reports whether the file in the site contents file system is a content asset
+// (i.e., not a Markdown file). It typically matches .png, .gif, and .svg files.
+func IsContentAsset(urlPath string) bool {
+	return filepath.Ext(urlPath) != "" && !isContentPage(urlPath)
 }
