@@ -10,6 +10,26 @@ import (
 	"github.com/sourcegraph/docsite/markdown"
 )
 
+// ContentPage represents a Markdown-formatted documentation page. To create a ContentPage, use one of the Site methods.
+type ContentPage struct {
+	Path        string            // the canonical URL path (without ".md" or "/index.md")
+	FilePath    string            // the filename on disk
+	Data        []byte            // the page's file contents
+	Doc         markdown.Document // the Markdown doc
+	Breadcrumbs []breadcrumbEntry // ancestor breadcrumb for this page
+}
+
+func contentFilePathToPath(filePath string) string {
+	if strings.HasPrefix(filePath, "/") {
+		panic("unexpected leading / in filePath: " + filePath)
+	}
+	path := strings.TrimSuffix(filePath, ".md")
+	if path == "index" {
+		return ""
+	}
+	return strings.TrimSuffix(path, "/index")
+}
+
 // resolveAndReadAll resolves a URL path to a file path, adding a file extension (.md) and a
 // directory index filename as needed. It also returns the file content.
 func resolveAndReadAll(fs http.FileSystem, path string) (filePath string, data []byte, err error) {
@@ -29,12 +49,6 @@ func isDir(fs http.FileSystem, path string) bool {
 	}
 	fi, err := f.Stat()
 	return err == nil && fi.Mode().IsDir()
-}
-
-type sourceFile struct {
-	FilePath    string
-	Doc         markdown.Document
-	Breadcrumbs []breadcrumbEntry
 }
 
 type breadcrumbEntry struct {
@@ -61,4 +75,8 @@ func makeBreadcrumbEntries(path string) []breadcrumbEntry {
 		}
 	}
 	return entries
+}
+
+func isContentPage(path string) bool {
+	return filepath.Ext(path) == ".md"
 }

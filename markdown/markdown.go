@@ -27,10 +27,16 @@ type Document struct {
 
 // Options customize how Run parses and HTML-renders the Markdown document.
 type Options struct {
-	Base             *url.URL
-	StripURLSuffixes []string
+	// Base is the base URL (typically including only the path, such as "/" or "/help/") to use when
+	// resolving relative links.
+	Base *url.URL
+
+	// ContentFilePathToLinkPath converts references to file paths of other content files to the URL
+	// path to use in links. For example, ContentFilePathToLinkPath("a/index.md") == "a".
+	ContentFilePathToLinkPath func(string) string
 }
 
+// NewParser creates a new Markdown parser (the same one used by Run).
 func NewParser() *blackfriday.Markdown {
 	return blackfriday.New(blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs))
 }
@@ -91,14 +97,15 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 		// https://github.com/russross/blackfriday/pull/231 where relative URLs starting with "."
 		// are not treated as relative URLs.
 		if entering {
-			if r.Options.Base != nil {
-				if dest, err := url.Parse(string(node.LinkData.Destination)); err == nil && !dest.IsAbs() {
-					dest = r.Options.Base.ResolveReference(dest)
-					node.LinkData.Destination = []byte(dest.String())
+			dest, err := url.Parse(string(node.LinkData.Destination))
+			if err == nil && !dest.IsAbs() {
+				if r.Options.ContentFilePathToLinkPath != nil {
+					dest.Path = r.Options.ContentFilePathToLinkPath(dest.Path)
 				}
-			}
-			for _, suffix := range r.Options.StripURLSuffixes {
-				node.LinkData.Destination = bytes.TrimSuffix(node.LinkData.Destination, []byte(suffix))
+				if r.Options.Base != nil {
+					dest = r.Options.Base.ResolveReference(dest)
+				}
+				node.LinkData.Destination = []byte(dest.String())
 			}
 		}
 	case blackfriday.HTMLBlock, blackfriday.HTMLSpan:

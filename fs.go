@@ -1,4 +1,4 @@
-package main
+package docsite
 
 import (
 	"fmt"
@@ -10,10 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 )
-
-func skipFile(path string) bool {
-	return filepath.Ext(path) != ".md"
-}
 
 func walkFileSystem(fs http.FileSystem, walkFn func(path string) error) error {
 	path := "/"

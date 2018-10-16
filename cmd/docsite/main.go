@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"text/template"
 
@@ -30,9 +31,10 @@ Use "docsite [command] -h" for more information about a command.
 `))
 
 var (
-	sourcesDir   = flag.String("sources", "../sourcegraph/doc", "path to `dir` containing .md source files")
-	templatesDir = flag.String("templates", "templates", "path to `dir` containing .html template files")
-	assetsDir    = flag.String("assets", "assets", "path to `dir` containing assets (styles, scripts, images, etc.)")
+	contentDir   = flag.String("content", "../sourcegraph/doc", "path to `dir` containing content (.md files and related images, etc.)")
+	baseURLPath  = flag.String("base-url-path", "/", "base `URL path` where doc site lives (examples: /, /help/)")
+	templatesDir = flag.String("templates", "templates", "path to `dir` containing .html template files (Go html/template)")
+	assetsDir    = flag.String("assets", "assets", "path to `dir` containing site-wide assets (styles, scripts, images, etc.)")
 )
 
 // commands contains all registered subcommands.
@@ -49,10 +51,12 @@ const (
 	assetsURLPathPrefix    = "/" + assetsURLPathComponent + "/"
 )
 
-func generatorFromFlags() docsite.Generator {
-	return docsite.Generator{
-		Sources:             http.Dir(*sourcesDir),
-		Templates:           http.Dir(*templatesDir),
-		AssetsURLPathPrefix: assetsURLPathPrefix,
+func siteFromFlags() docsite.Site {
+	return docsite.Site{
+		Templates:  http.Dir(*templatesDir),
+		Content:    http.Dir(*contentDir),
+		Base:       &url.URL{Path: *baseURLPath},
+		Assets:     http.Dir(*assetsDir),
+		AssetsBase: &url.URL{Path: assetsURLPathPrefix},
 	}
 }
