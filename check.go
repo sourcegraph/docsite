@@ -15,14 +15,14 @@ import (
 )
 
 // Check checks the site content for common problems (such as broken links).
-func (s *Site) Check(skipURL func(string) bool) (problems []string, err error) {
+func (s *Site) Check() (problems []string, err error) {
 	pages, err := s.AllContentPages()
 	if err != nil {
 		return nil, err
 	}
 	for _, page := range pages {
 		problemPrefix := fmt.Sprintf("%s: ", page.FilePath)
-		pageProblems, pageErr := s.checkContentPage(page, skipURL)
+		pageProblems, pageErr := s.checkContentPage(page)
 		if pageErr != nil {
 			problems = append(problems, problemPrefix+pageErr.Error())
 		}
@@ -33,7 +33,7 @@ func (s *Site) Check(skipURL func(string) bool) (problems []string, err error) {
 	return problems, nil
 }
 
-func (s *Site) checkContentPage(page *ContentPage, skipURL func(string) bool) (problems []string, err error) {
+func (s *Site) checkContentPage(page *ContentPage) (problems []string, err error) {
 	ast := markdown.NewParser().Parse(page.Data)
 	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 		if entering {
@@ -71,7 +71,7 @@ func (s *Site) checkContentPage(page *ContentPage, skipURL func(string) bool) (p
 	handler := s.Handler()
 	walkOpt := walkHTMLDocumentOptions{
 		url: func(urlStr string) {
-			if skipURL(urlStr) {
+			if s.CheckIgnoreURLPattern != nil && s.CheckIgnoreURLPattern.MatchString(urlStr) {
 				return
 			}
 

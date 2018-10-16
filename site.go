@@ -2,11 +2,13 @@ package docsite
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
 	pathpkg "path"
+	"regexp"
 
 	"github.com/pkg/errors"
 	"github.com/sourcegraph/docsite/markdown"
@@ -33,6 +35,50 @@ type Site struct {
 	// AssetsBase is the base URL (sometimes only including the path, such as "/assets/") where the
 	// assets are available.
 	AssetsBase *url.URL
+
+	// CheckIgnoreURLPattern is a regexp matching URLs to ignore in the Check method.
+	CheckIgnoreURLPattern *regexp.Regexp
+}
+
+// Open creates a new documentation site from a docsite.json file.
+func Open(configData []byte) (*Site, error) {
+	var config struct {
+		Templates         string
+		Content           string
+		BaseURLPath       string
+		Assets            string
+		AssetsBaseURLPath string
+		Check             struct {
+			IgnoreURLPattern string
+		}
+	}
+	if err := json.Unmarshal(configData, &config); err != nil {
+		return nil, errors.WithMessage(err, "reading docsite configuration")
+	}
+
+	var checkIgnoreURLPattern *regexp.Regexp
+	if config.Check.IgnoreURLPattern != "" {
+		var err error
+		checkIgnoreURLPattern, err = regexp.Compile(config.Check.IgnoreURLPattern)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	httpDirOrNil := func(dir string) http.FileSystem {
+		if dir == "" {
+			return nil
+		}
+		return http.Dir(dir)
+	}
+	return &Site{
+		Templates:             httpDirOrNil(config.Templates),
+		Content:               httpDirOrNil(config.Content),
+		Base:                  &url.URL{Path: config.BaseURLPath},
+		Assets:                httpDirOrNil(config.Assets),
+		AssetsBase:            &url.URL{Path: config.AssetsBaseURLPath},
+		CheckIgnoreURLPattern: checkIgnoreURLPattern,
+	}, nil
 }
 
 // newContentPage creates a new ContentPage in the site.

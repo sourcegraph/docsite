@@ -3,36 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"regexp"
 )
 
 func init() {
 	flagSet := flag.NewFlagSet("check", flag.ExitOnError)
-	var (
-		// TODO(sqs): do not skip "^#" URLs; instead, check them.
-		skipURLs = flagSet.String("skip-urls", "", "regexp `pattern` for URLs to skip in broken link check")
-	)
 
 	handler := func(args []string) error {
 		flagSet.Parse(args)
-
-		var problems []string
-
-		var skipURLsPattern *regexp.Regexp
-		if *skipURLs != "" {
-			var err error
-			skipURLsPattern, err = regexp.Compile(*skipURLs)
-			if err != nil {
-				return err
-			}
+		site, err := siteFromFlags()
+		if err != nil {
+			return err
 		}
-		skipURL := func(url string) bool {
-			return skipURLsPattern != nil && skipURLsPattern.MatchString(url)
-		}
-
-		// Check content.
-		site := siteFromFlags()
-		problems, err := site.Check(skipURL)
+		problems, err := site.Check()
 		if err != nil {
 			return err
 		}

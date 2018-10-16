@@ -26,10 +26,6 @@ type command struct {
 
 	// handler is the function that is invoked to handle this command.
 	handler func(args []string) error
-
-	// flagSet.Usage function to invoke on e.g. -h flag. If nil, a default one
-	// one is used.
-	usageFunc func()
 }
 
 func (c *command) NameAndAliases() string {
@@ -63,10 +59,10 @@ func (c commander) run(flagSet *flag.FlagSet, cmdName string, usage *template.Te
 			FlagUsage func() string
 			Commands  []*command
 		}{
-			FlagUsage: func() string { flag.PrintDefaults(); return "" },
+			FlagUsage: func() string { commandLine.PrintDefaults(); return "" },
 			Commands:  c,
 		}
-		if err := usage.Execute(flag.CommandLine.Output(), data); err != nil {
+		if err := usage.Execute(commandLine.Output(), data); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -81,19 +77,26 @@ func (c commander) run(flagSet *flag.FlagSet, cmdName string, usage *template.Te
 	}
 
 	// Configure default usage funcs for commands.
-	for _, cmd := range c {
+	for _, cmd_ := range c {
+		cmd := cmd_
 		cmd.FlagSet.Usage = func() {
-			fmt.Fprintln(flag.CommandLine.Output(), "Usage:")
-			fmt.Fprintln(flag.CommandLine.Output())
-			fmt.Fprintf(flag.CommandLine.Output(), "  %s [options] %s [command options]\n", cmdName, cmd.FlagSet.Name())
-			if cmd.LongDescription != "" {
-				fmt.Fprintln(flag.CommandLine.Output())
-				fmt.Fprintln(flag.CommandLine.Output(), cmd.LongDescription)
-				fmt.Fprintln(flag.CommandLine.Output())
+			fmt.Fprintln(commandLine.Output(), "Usage:")
+			fmt.Fprintln(commandLine.Output())
+			fmt.Fprintf(commandLine.Output(), "  %s [options] %s", cmdName, cmd.FlagSet.Name())
+			if hasFlags(cmd.FlagSet) {
+				fmt.Fprint(commandLine.Output(), " [command options]")
 			}
-			fmt.Fprintln(flag.CommandLine.Output(), "The command options are:")
-			fmt.Fprintln(flag.CommandLine.Output())
-			cmd.FlagSet.PrintDefaults()
+			fmt.Fprintln(commandLine.Output())
+			if cmd.LongDescription != "" {
+				fmt.Fprintln(commandLine.Output())
+				fmt.Fprintln(commandLine.Output(), cmd.LongDescription)
+				fmt.Fprintln(commandLine.Output())
+			}
+			if hasFlags(cmd.FlagSet) {
+				fmt.Fprintln(commandLine.Output(), "The command options are:")
+				fmt.Fprintln(commandLine.Output())
+				cmd.FlagSet.PrintDefaults()
+			}
 		}
 	}
 
@@ -129,6 +132,12 @@ func (c commander) run(flagSet *flag.FlagSet, cmdName string, usage *template.Te
 	}
 	log.Printf("%s: unknown subcommand %q", cmdName, name)
 	log.Fatalf("Run '%s help' for usage.", cmdName)
+}
+
+func hasFlags(flagSet *flag.FlagSet) bool {
+	var ok bool
+	flagSet.VisitAll(func(*flag.Flag) { ok = true })
+	return ok
 }
 
 // usageError is an error type that subcommands can return in order to signal
