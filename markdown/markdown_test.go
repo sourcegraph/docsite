@@ -64,6 +64,16 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
+	t.Run("HTML", func(t *testing.T) {
+		doc, err := Run([]byte(`<kbd>b</kbd>`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p><kbd>b</kbd></p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
 	t.Run("relative URL in Markdown links and images", func(t *testing.T) {
 		doc, err := Run([]byte("[a](b/c) ![a](b/c)"), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
@@ -75,13 +85,13 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("relative URL in HTML <a> and <img>", func(t *testing.T) {
-		doc, err := Run([]byte(`<a href="b/c" /><img src="b/c">`), Options{Base: &url.URL{Path: "/d/"}})
+		doc, err := Run([]byte(`<a href="b/c">z</a><img src="b/c">`), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p><a href="/d/b/c"></a><img src="/d/b/c"/></p>` + "\n"
+		want := `<p><a href="/d/b/c">z</a><img src="/d/b/c"></p>` + "\n"
 		if string(doc.HTML) != want {
-			t.Errorf("got %q, want %q", string(doc.HTML), want)
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("alerts", func(t *testing.T) {

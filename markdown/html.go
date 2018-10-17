@@ -2,21 +2,18 @@ package markdown
 
 import (
 	"bytes"
+	"io"
 	"net/url"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
 
-func rewriteRelativeURLsInHTML(htmlSource []byte, opt Options) ([]byte, error) {
-	// Pass dummyElement to html.ParseFragment to avoid introducing <html>, <head>, and <body>
-	// elements in the final html.Render call.
-	dummyElement := &html.Node{Type: html.ElementNode}
-	nodes, err := html.ParseFragment(bytes.NewReader(htmlSource), dummyElement)
-	if err != nil {
-		return nil, err
-	}
-
+// rewriteRelativeURLsInHTML rewrites <a href> and <img src> attribute values in an HTML fragment
+// and returns the rewritten HTML fragment. The HTML fragment may contain unclosed tags (which is
+// why it uses a tokenizer instead of a parser, which would auto-close tags upon rendering the
+// modified tree).
+func rewriteRelativeURLsInHTML(htmlFragment []byte, opt Options) ([]byte, error) {
 	resolveURL := func(urlStr string) string {
 		if opt.Base == nil {
 			return urlStr
@@ -28,40 +25,33 @@ func rewriteRelativeURLsInHTML(htmlSource []byte, opt Options) ([]byte, error) {
 		return opt.Base.ResolveReference(u).String()
 	}
 
-	var walk func(node *html.Node)
-	walk = func(node *html.Node) {
-		if node.Type == html.ElementNode {
-			switch node.DataAtom {
+	z := html.NewTokenizer(bytes.NewReader(htmlFragment))
+	var buf bytes.Buffer
+	for {
+		tt := z.Next()
+		if tt == html.ErrorToken && z.Err() == io.EOF {
+			break
+		}
+		tok := z.Token()
+		if tok.Type == html.StartTagToken {
+			switch tok.DataAtom {
 			case atom.A:
-				for i, attr := range node.Attr {
+				for i, attr := range tok.Attr {
 					if attr.Key == "href" {
 						attr.Val = resolveURL(attr.Val)
-						node.Attr[i] = attr
+						tok.Attr[i] = attr
 					}
 				}
 			case atom.Img:
-				for i, attr := range node.Attr {
+				for i, attr := range tok.Attr {
 					if attr.Key == "src" {
 						attr.Val = resolveURL(attr.Val)
-						node.Attr[i] = attr
+						tok.Attr[i] = attr
 					}
 				}
 			}
 		}
-
-		for c := node.FirstChild; c != nil; c = c.NextSibling {
-			walk(c)
-		}
-	}
-	for _, node := range nodes {
-		walk(node)
-	}
-
-	var buf bytes.Buffer
-	for _, node := range nodes {
-		if err := html.Render(&buf, node); err != nil {
-			return nil, err
-		}
+		buf.WriteString(tok.String())
 	}
 	return buf.Bytes(), nil
 }
