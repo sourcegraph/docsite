@@ -15,5 +15,6 @@ docsite -h
 
 - `docsite check`: check for common problems (such as broken links)
 - `docsite serve`: serve the site over HTTP
+- `docsite build`: bundle site data into the ELF executable to make a standalone program that can serve the site
 
 To use docsite for docs.sourcegraph.com, see the [docs.sourcegraph.com README](https://github.com/sourcegraph/docs.sourcegraph.com/blob/master/README.md).
