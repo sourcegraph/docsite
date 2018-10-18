@@ -11,7 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func walkFileSystem(fs http.FileSystem, walkFn func(path string) error) error {
+// WalkFileSystem walks a file system and calls walkFn for each file.
+func WalkFileSystem(fs http.FileSystem, walkFn func(path string) error) error {
 	path := "/"
 	root, err := fs.Open(path)
 	if err != nil {

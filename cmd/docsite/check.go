@@ -10,7 +10,7 @@ func init() {
 
 	handler := func(args []string) error {
 		flagSet.Parse(args)
-		site, err := siteFromFlags()
+		site, _, err := siteFromFlags()
 		if err != nil {
 			return err
 		}

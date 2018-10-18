@@ -28,7 +28,7 @@ func TestWalkFileSystem(t *testing.T) {
 		allPaths = append(allPaths, path)
 		return nil
 	}
-	if err := walkFileSystem(fs, collect); err != nil {
+	if err := WalkFileSystem(fs, collect); err != nil {
 		t.Fatal(err)
 	}
 	sort.Strings(allPaths)

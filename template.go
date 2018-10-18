@@ -14,7 +14,7 @@ func parseTemplates(templatesFS http.FileSystem, funcs template.FuncMap) (*templ
 	tmpl.Funcs(funcs)
 
 	// Read all template files (recursively).
-	err := walkFileSystem(templatesFS, func(path string) error {
+	err := WalkFileSystem(templatesFS, func(path string) error {
 		if filepath.Ext(path) != ".html" {
 			return nil // not a template
 		}

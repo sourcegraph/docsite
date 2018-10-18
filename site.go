@@ -2,7 +2,6 @@ package docsite
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -40,47 +39,6 @@ type Site struct {
 	CheckIgnoreURLPattern *regexp.Regexp
 }
 
-// Open creates a new documentation site from a docsite.json file.
-func Open(configData []byte) (*Site, error) {
-	var config struct {
-		Templates         string
-		Content           string
-		BaseURLPath       string
-		Assets            string
-		AssetsBaseURLPath string
-		Check             struct {
-			IgnoreURLPattern string
-		}
-	}
-	if err := json.Unmarshal(configData, &config); err != nil {
-		return nil, errors.WithMessage(err, "reading docsite configuration")
-	}
-
-	var checkIgnoreURLPattern *regexp.Regexp
-	if config.Check.IgnoreURLPattern != "" {
-		var err error
-		checkIgnoreURLPattern, err = regexp.Compile(config.Check.IgnoreURLPattern)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	httpDirOrNil := func(dir string) http.FileSystem {
-		if dir == "" {
-			return nil
-		}
-		return http.Dir(dir)
-	}
-	return &Site{
-		Templates:             httpDirOrNil(config.Templates),
-		Content:               httpDirOrNil(config.Content),
-		Base:                  &url.URL{Path: config.BaseURLPath},
-		Assets:                httpDirOrNil(config.Assets),
-		AssetsBase:            &url.URL{Path: config.AssetsBaseURLPath},
-		CheckIgnoreURLPattern: checkIgnoreURLPattern,
-	}, nil
-}
-
 // newContentPage creates a new ContentPage in the site.
 func (s *Site) newContentPage(filePath string, data []byte) (*ContentPage, error) {
 	path := contentFilePathToPath(filePath)
@@ -103,7 +61,7 @@ func (s *Site) newContentPage(filePath string, data []byte) (*ContentPage, error
 // AllContentPages returns a list of all content pages in the site.
 func (s *Site) AllContentPages() ([]*ContentPage, error) {
 	var pages []*ContentPage
-	err := walkFileSystem(s.Content, func(path string) error {
+	err := WalkFileSystem(s.Content, func(path string) error {
 		if isContentPage(path) {
 			page, err := s.ReadContentPage(path)
 			if err != nil {

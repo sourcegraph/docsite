@@ -25,7 +25,7 @@ func init() {
 		}
 
 		log.Printf("# Doc site is available at http://%s:%s", host, port)
-		site, err := siteFromFlags()
+		site, _, err := siteFromFlags()
 		if err != nil {
 			return err
 		}

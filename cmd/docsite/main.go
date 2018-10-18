@@ -2,15 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"text/template"
-
-	"github.com/pkg/errors"
-	"github.com/sourcegraph/docsite"
 )
 
 var usage = template.Must(template.New("").Parse(`docsite is a tool for generating static documentation sites from Markdown files and HTML templates.
@@ -49,18 +44,4 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("")
 	commands.run(commandLine, "docsite", usage, os.Args[1:])
-}
-
-func siteFromFlags() (*docsite.Site, error) {
-	paths := filepath.SplitList(*configPath)
-	for _, path := range paths {
-		data, err := ioutil.ReadFile(path)
-		if os.IsNotExist(err) {
-			continue
-		} else if err != nil {
-			return nil, errors.WithMessage(err, "reading docsite config file (from -config flag)")
-		}
-		return docsite.Open(data)
-	}
-	return nil, fmt.Errorf("no docsite.json config file found (search paths: %s)", *configPath)
 }
