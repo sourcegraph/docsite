@@ -1,16 +1,20 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"log"
 	"net"
 	"net/http"
+
+	"golang.org/x/crypto/acme/autocert"
 )
 
 func init() {
 	flagSet := flag.NewFlagSet("serve", flag.ExitOnError)
 	var (
-		httpAddr = flagSet.String("http", ":5080", "HTTP listen address for previewing")
+		httpAddr       = flagSet.String("http", ":5080", "HTTP listen address for previewing")
+		autocertDomain = flagSet.String("autocert-domain", "", "enable TLS listener and autocert for this domain name")
 	)
 
 	handler := func(args []string) error {
@@ -24,12 +28,27 @@ func init() {
 			host = "0.0.0.0"
 		}
 
-		log.Printf("# Doc site is available at http://%s:%s", host, port)
 		site, _, err := siteFromFlags()
 		if err != nil {
 			return err
 		}
-		return http.ListenAndServe(*httpAddr, site.Handler())
+
+		handler := site.Handler()
+		l, err := net.Listen("tcp", *httpAddr)
+		if err != nil {
+			return err
+		}
+		if *autocertDomain != "" {
+			log.Printf("# TLS listener enabled, Let's Encrypt domain %s", *autocertDomain)
+			m := &autocert.Manager{
+				Prompt:     autocert.AcceptTOS,
+				HostPolicy: autocert.HostWhitelist(*autocertDomain),
+			}
+			l = tls.NewListener(l, m.TLSConfig())
+			handler = m.HTTPHandler(handler)
+		}
+		log.Printf("# Doc site is available at http://%s:%s", host, port)
+		return http.Serve(l, handler)
 	}
 
 	// Register the command.
