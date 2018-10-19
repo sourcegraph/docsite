@@ -15,7 +15,6 @@ docsite -h
 
 - `docsite check`: check for common problems (such as broken links)
 - `docsite serve`: serve the site over HTTP
-- `docsite build`: bundle site data into the ELF executable to make a standalone program that can serve the site
 
 To use docsite for docs.sourcegraph.com, see the [docs.sourcegraph.com README](https://github.com/sourcegraph/docs.sourcegraph.com/blob/master/README.md).
 
@@ -40,4 +39,3 @@ The `docsite` tool requires site data to be available in any of the following wa
    ```
    DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/master#docs.sourcegraph.com-master/templates/","assets":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/master#docs.sourcegraph.com-master/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/master#sourcegraph-master/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
    ```
-- Bundled into its ELF executable using `docsite build`

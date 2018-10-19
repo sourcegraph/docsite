@@ -3,7 +3,6 @@ package main
 import (
 	"archive/zip"
 	"bytes"
-	"debug/elf"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -21,15 +20,7 @@ import (
 )
 
 func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
-	// First, check if this executable was built with `docsite build` and has site data bundled.
-	if executable, err := os.Executable(); err == nil {
-		site, config, err := openDocsiteFromELF(executable)
-		if site != nil || err != nil {
-			return site, config, err
-		}
-	}
-
-	// Next, check if env vars are set that refer to site data in external repositories.
+	// Check if env vars are set that refer to site data in external URLs.
 	site, config, err := openDocsiteFromEnv()
 	if site != nil || err != nil {
 		return site, config, err
@@ -58,8 +49,6 @@ type docsiteConfig struct {
 	Check             struct {
 		IgnoreURLPattern string
 	}
-
-	IsELF bool
 }
 
 func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
@@ -153,80 +142,6 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	content, err := zipFileSystem(config.Content)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	site, err := partialSiteFromConfig(config)
-	if err != nil {
-		return nil, nil, err
-	}
-	site.Templates = templates
-	site.Content = content
-	site.Assets = assets
-	return site, &config, nil
-}
-
-// openDocsiteFromELF reads the documentation site data from the ELF file at path.
-func openDocsiteFromELF(path string) (*docsite.Site, *docsiteConfig, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer f.Close()
-	elfFile, err := elf.NewFile(f)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer elfFile.Close()
-
-	readSection := func(name string) ([]byte, error) {
-		for _, section := range elfFile.Sections {
-			if section.Name == name {
-				return section.Data()
-			}
-		}
-		return nil, nil
-	}
-
-	// Read docsite.json.
-	configData, err := readSection("docsite_config")
-	if configData == nil && err == nil {
-		// This ELF file does not appear to be built with `docsite build`.
-		return nil, nil, nil
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-	var config docsiteConfig
-	if err := json.Unmarshal(configData, &config); err != nil {
-		return nil, nil, err
-	}
-
-	// Read site data.
-	sectionFileSystem := func(name string) (http.FileSystem, error) {
-		data, err := readSection(name)
-		if err != nil {
-			return nil, err
-		}
-		z, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-		if err != nil {
-			return nil, err
-		}
-		return prefixFileSystem{
-			fs:     httpfs.New(zipfs.New(&zip.ReadCloser{Reader: *z}, name)),
-			prefix: "/",
-		}, nil
-	}
-	assets, err := sectionFileSystem("docsite_assets")
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "reading assets from ELF")
-	}
-	templates, err := sectionFileSystem("docsite_templates")
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "reading templates from ELF")
-	}
-	content, err := sectionFileSystem("docsite_content")
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "reading content from ELF")
 	}
 
 	site, err := partialSiteFromConfig(config)
