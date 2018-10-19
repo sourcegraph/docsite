@@ -18,3 +18,26 @@ docsite -h
 - `docsite build`: bundle site data into the ELF executable to make a standalone program that can serve the site
 
 To use docsite for docs.sourcegraph.com, see the [docs.sourcegraph.com README](https://github.com/sourcegraph/docs.sourcegraph.com/blob/master/README.md).
+
+## Site data
+
+The `docsite` tool requires site data to be available in any of the following ways:
+
+- A `docsite.json` file (or other file specified in the `-config` flag's search paths), as in the following example:
+   ```
+   {
+     "templates": "templates",
+     "content": "../sourcegraph/doc",
+     "baseURLPath": "/",
+     "assets": "assets",
+     "assetsBaseURLPath": "/assets/",
+     "check": {
+       "ignoreURLPattern": "(^https?://)|(^#)|(^mailto:support@sourcegraph\\.com$)|(^chrome://)"
+     }
+   }
+   ```
+- In the `DOCSITE_CONFIG` env var, using Zip archive URLs for `templates`, `assets`, and `content`, as in the following example:
+   ```
+   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/master#docs.sourcegraph.com-master/templates/","assets":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/master#docs.sourcegraph.com-master/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/master#sourcegraph-master/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
+   ```
+- Bundled into its ELF executable using `docsite build`

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -26,6 +27,12 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 		if site != nil || err != nil {
 			return site, config, err
 		}
+	}
+
+	// Next, check if env vars are set that refer to site data in external repositories.
+	site, config, err := openDocsiteFromEnv()
+	if site != nil || err != nil {
+		return site, config, err
 	}
 
 	paths := filepath.SplitList(*configPath)
@@ -96,6 +103,67 @@ func openDocsiteFromConfig(configData []byte) (*docsite.Site, *docsiteConfig, er
 	return site, &config, nil
 }
 
+// openDocsiteFromConfig reads the documentation site data from env vars that refer to repositories.
+func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
+	configData := os.Getenv("DOCSITE_CONFIG")
+	if configData == "" {
+		return nil, nil, nil
+	}
+
+	var config docsiteConfig
+	if err := json.Unmarshal([]byte(configData), &config); err != nil {
+		return nil, nil, errors.WithMessage(err, "reading docsite configuration")
+	}
+
+	// Read site data.
+	zipFileSystem := func(urlStr string) (http.FileSystem, error) {
+		url, err := url.Parse(urlStr)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := http.Get(urlStr)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("# Downloaded %s (%d bytes)", urlStr, len(body))
+		z, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+		if err != nil {
+			return nil, err
+		}
+		return prefixFileSystem{
+			fs:     httpfs.New(zipfs.New(&zip.ReadCloser{Reader: *z}, urlStr)),
+			prefix: "/" + url.Fragment,
+		}, nil
+	}
+	assets, err := zipFileSystem(config.Assets)
+	if err != nil {
+		return nil, nil, err
+	}
+	templates, err := zipFileSystem(config.Templates)
+	if err != nil {
+		return nil, nil, err
+	}
+	content, err := zipFileSystem(config.Content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	site, err := partialSiteFromConfig(config)
+	if err != nil {
+		return nil, nil, err
+	}
+	site.Templates = templates
+	site.Content = content
+	site.Assets = assets
+	return site, &config, nil
+}
+
 // openDocsiteFromELF reads the documentation site data from the ELF file at path.
 func openDocsiteFromELF(path string) (*docsite.Site, *docsiteConfig, error) {
 	f, err := os.Open(path)
@@ -142,7 +210,10 @@ func openDocsiteFromELF(path string) (*docsite.Site, *docsiteConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		return slashPrefixFileSystem{httpfs.New(zipfs.New(&zip.ReadCloser{Reader: *z}, name))}, nil
+		return prefixFileSystem{
+			fs:     httpfs.New(zipfs.New(&zip.ReadCloser{Reader: *z}, name)),
+			prefix: "/",
+		}, nil
 	}
 	assets, err := sectionFileSystem("docsite_assets")
 	if err != nil {
@@ -167,10 +238,11 @@ func openDocsiteFromELF(path string) (*docsite.Site, *docsiteConfig, error) {
 	return site, &config, nil
 }
 
-type slashPrefixFileSystem struct {
-	fs http.FileSystem
+type prefixFileSystem struct {
+	fs     http.FileSystem
+	prefix string
 }
 
-func (fs slashPrefixFileSystem) Open(name string) (http.File, error) {
-	return fs.fs.Open("/" + name)
+func (fs prefixFileSystem) Open(name string) (http.File, error) {
+	return fs.fs.Open(fs.prefix + name)
 }
