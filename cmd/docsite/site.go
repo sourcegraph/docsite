@@ -116,6 +116,7 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	}
 
 	// Read site data.
+	log.Println("# Downloading site data...")
 	zipFileSystem := func(urlStr string) (http.FileSystem, error) {
 		url, err := url.Parse(urlStr)
 		if err != nil {
