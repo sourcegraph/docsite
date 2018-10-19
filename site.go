@@ -2,16 +2,23 @@ package docsite
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
 	pathpkg "path"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sourcegraph/docsite/markdown"
 )
+
+// VersionedFileSystem represents multiple versions of an http.FileSystem.
+type VersionedFileSystem interface {
+	OpenVersion(ctx context.Context, version string) (http.FileSystem, error)
+}
 
 // Site represents a documentation site, including all of its templates, assets, and content.
 type Site struct {
@@ -19,9 +26,9 @@ type Site struct {
 	// pages
 	Templates http.FileSystem
 
-	// Content is the file system containing the Markdown files and assets (e.g., images) embedded
-	// in them.
-	Content http.FileSystem
+	// Content is the versioned file system containing the Markdown files and assets (e.g., images)
+	// embedded in them.
+	Content VersionedFileSystem
 
 	// Base is the base URL (typically including only the path, such as "/" or "/help/") where the
 	// site is available.
@@ -40,30 +47,49 @@ type Site struct {
 }
 
 // newContentPage creates a new ContentPage in the site.
-func (s *Site) newContentPage(filePath string, data []byte) (*ContentPage, error) {
+func (s *Site) newContentPage(filePath string, data []byte, contentVersion string) (*ContentPage, error) {
+	var urlPathPrefix string
+	if contentVersion != "" {
+		urlPathPrefix = "/@" + contentVersion + "/"
+	}
+	urlPathPrefix = pathpkg.Join(urlPathPrefix, strings.TrimPrefix(pathpkg.Dir(filePath)+"/", "/"))
+	if urlPathPrefix != "" {
+		urlPathPrefix += "/"
+	}
+
 	path := contentFilePathToPath(filePath)
 	doc, err := markdown.Run(data, markdown.Options{
-		Base:                      s.Base.ResolveReference(&url.URL{Path: pathpkg.Dir(filePath) + "/"}),
+		Base:                      s.Base.ResolveReference(&url.URL{Path: urlPathPrefix}),
 		ContentFilePathToLinkPath: contentFilePathToPath,
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("run Markdown for %s", filePath))
 	}
 	return &ContentPage{
-		Path:        path,
-		FilePath:    filePath,
-		Data:        data,
-		Doc:         *doc,
-		Breadcrumbs: makeBreadcrumbEntries(path),
+		Path:           path,
+		FilePath:       filePath,
+		Data:           data,
+		Doc:            *doc,
+		Breadcrumbs:    makeBreadcrumbEntries(path),
+		ContentVersion: contentVersion,
 	}, nil
 }
 
 // AllContentPages returns a list of all content pages in the site.
-func (s *Site) AllContentPages() ([]*ContentPage, error) {
+func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*ContentPage, error) {
+	content, err := s.Content.OpenVersion(ctx, contentVersion)
+	if err != nil {
+		return nil, err
+	}
+
 	var pages []*ContentPage
-	err := WalkFileSystem(s.Content, func(path string) error {
+	err = WalkFileSystem(content, func(path string) error {
 		if isContentPage(path) {
-			page, err := s.ReadContentPage(path)
+			data, err := ReadFile(content, path)
+			if err != nil {
+				return err
+			}
+			page, err := s.newContentPage(path, data, contentVersion)
 			if err != nil {
 				return err
 			}
@@ -74,26 +100,21 @@ func (s *Site) AllContentPages() ([]*ContentPage, error) {
 	return pages, err
 }
 
-// ReadContentPage reads the content page at the given file path on disk.
-func (s *Site) ReadContentPage(filePath string) (*ContentPage, error) {
-	data, err := ReadFile(s.Content, filePath)
-	if err != nil {
-		return nil, err
-	}
-	return s.newContentPage(filePath, data)
-}
-
-// ResolveContentPage looks up the content page at the given path (which generally comes from a
-// URL). The path may omit the ".md" file extension and the "/index" or "/index.md" suffix.
+// ResolveContentPage looks up the content page at the given version and path (which generally comes
+// from a URL). The path may omit the ".md" file extension and the "/index" or "/index.md" suffix.
 //
 // If the resulting ContentPage differs from the path argument, the caller should (if possible)
 // communicate a redirect.
-func (s *Site) ResolveContentPage(path string) (*ContentPage, error) {
-	filePath, data, err := resolveAndReadAll(s.Content, path)
+func (s *Site) ResolveContentPage(ctx context.Context, contentVersion, path string) (*ContentPage, error) {
+	content, err := s.Content.OpenVersion(ctx, contentVersion)
 	if err != nil {
 		return nil, err
 	}
-	return s.newContentPage(filePath, data)
+	filePath, data, err := resolveAndReadAll(content, path)
+	if err != nil {
+		return nil, err
+	}
+	return s.newContentPage(filePath, data, contentVersion)
 }
 
 // RenderContentPage renders a content page using the template.

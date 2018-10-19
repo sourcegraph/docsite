@@ -12,11 +12,12 @@ import (
 
 // ContentPage represents a Markdown-formatted documentation page. To create a ContentPage, use one of the Site methods.
 type ContentPage struct {
-	Path        string            // the canonical URL path (without ".md" or "/index.md")
-	FilePath    string            // the filename on disk
-	Data        []byte            // the page's file contents
-	Doc         markdown.Document // the Markdown doc
-	Breadcrumbs []breadcrumbEntry // ancestor breadcrumb for this page
+	Path           string            // the canonical URL path (without ".md" or "/index.md")
+	FilePath       string            // the filename on disk
+	Data           []byte            // the page's file contents
+	Doc            markdown.Document // the Markdown doc
+	Breadcrumbs    []breadcrumbEntry // ancestor breadcrumb for this page
+	ContentVersion string            // version string
 }
 
 func contentFilePathToPath(filePath string) string {

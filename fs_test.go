@@ -1,6 +1,9 @@
 package docsite
 
 import (
+	"context"
+	"fmt"
+	"net/http"
 	"reflect"
 	"sort"
 	"testing"
@@ -35,4 +38,14 @@ func TestWalkFileSystem(t *testing.T) {
 	if !reflect.DeepEqual(allPaths, wantAllPaths) {
 		t.Errorf("got paths %v, want %v", allPaths, wantAllPaths)
 	}
+}
+
+type versionedFileSystem map[string]http.FileSystem
+
+func (vfs versionedFileSystem) OpenVersion(_ context.Context, version string) (http.FileSystem, error) {
+	fs, ok := vfs[version]
+	if !ok {
+		return nil, fmt.Errorf("file system version not found: %q", version)
+	}
+	return fs, nil
 }

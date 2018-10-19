@@ -1,6 +1,7 @@
 package docsite
 
 import (
+	"context"
 	"net/url"
 	"os"
 	"testing"
@@ -9,49 +10,21 @@ import (
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
 
-func TestSite_ReadContentPage(t *testing.T) {
-	site := Site{
-		Content: httpfs.New(mapfs.New(map[string]string{
-			"a/b/c.md": "d",
-		})),
-		Base: &url.URL{Path: "/"},
-	}
-
-	t.Run("page", func(t *testing.T) {
-		page, err := site.ReadContentPage("a/b/c.md")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if want := "a/b/c"; page.Path != want {
-			t.Errorf("got path %q, want %q", page.Path, want)
-		}
-		if want := "a/b/c.md"; page.FilePath != want {
-			t.Errorf("got file path %q, want %q", page.FilePath, want)
-		}
-		if want := "d"; string(page.Data) != want {
-			t.Errorf("got data %q, want %q", page.Data, want)
-		}
-	})
-
-	t.Run("not found", func(t *testing.T) {
-		if _, err := site.ReadContentPage("not/found.md"); !os.IsNotExist(err) {
-			t.Errorf("got error %v, want os.IsNotExist(err) == true", err)
-		}
-	})
-}
-
 func TestSite_ResolveContentPage(t *testing.T) {
+	ctx := context.Background()
 	site := Site{
-		Content: httpfs.New(mapfs.New(map[string]string{
-			"index.md":     "z",
-			"a/b/index.md": "e",
-			"a/b/c.md":     "d",
-		})),
+		Content: versionedFileSystem{
+			"": httpfs.New(mapfs.New(map[string]string{
+				"index.md":     "z",
+				"a/b/index.md": "e",
+				"a/b/c.md":     "d",
+			})),
+		},
 		Base: &url.URL{Path: "/"},
 	}
 
 	t.Run("page", func(t *testing.T) {
-		page, err := site.ResolveContentPage("a/b/c")
+		page, err := site.ResolveContentPage(ctx, "", "a/b/c")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,7 +40,7 @@ func TestSite_ResolveContentPage(t *testing.T) {
 	})
 
 	t.Run("root", func(t *testing.T) {
-		page, err := site.ResolveContentPage("")
+		page, err := site.ResolveContentPage(ctx, "", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,7 +56,7 @@ func TestSite_ResolveContentPage(t *testing.T) {
 	})
 
 	t.Run("resolved to different path", func(t *testing.T) {
-		page, err := site.ResolveContentPage("a/b/index")
+		page, err := site.ResolveContentPage(ctx, "", "a/b/index")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -99,7 +72,7 @@ func TestSite_ResolveContentPage(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		if _, err := site.ResolveContentPage("not/found"); !os.IsNotExist(err) {
+		if _, err := site.ResolveContentPage(ctx, "", "not/found"); !os.IsNotExist(err) {
 			t.Errorf("got error %v, want os.IsNotExist(err) == true", err)
 		}
 	})
@@ -118,7 +91,7 @@ func TestSite_RenderContentPage(t *testing.T) {
 	}
 
 	t.Run("page", func(t *testing.T) {
-		page, err := site.newContentPage("a/b/c.md", []byte("d [z](../e/f/index.md)"))
+		page, err := site.newContentPage("a/b/c.md", []byte("d [z](../e/f/index.md)"), "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -134,7 +107,7 @@ func TestSite_RenderContentPage(t *testing.T) {
 	})
 
 	t.Run("index", func(t *testing.T) {
-		page, err := site.newContentPage("a/b/index.md", []byte("d [z](../e/f/index.md)"))
+		page, err := site.newContentPage("a/b/index.md", []byte("d [z](../e/f/index.md)"), "")
 		if err != nil {
 			t.Fatal(err)
 		}

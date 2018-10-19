@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 )
 
 func init() {
 	flagSet := flag.NewFlagSet("check", flag.ExitOnError)
+	var (
+		contentVersion = flagSet.String("content-version", "", "version of content to check")
+	)
 
 	handler := func(args []string) error {
 		flagSet.Parse(args)
@@ -14,7 +18,7 @@ func init() {
 		if err != nil {
 			return err
 		}
-		problems, err := site.Check()
+		problems, err := site.Check(context.Background(), *contentVersion)
 		if err != nil {
 			return err
 		}

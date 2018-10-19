@@ -2,6 +2,7 @@ package docsite
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,8 +16,8 @@ import (
 )
 
 // Check checks the site content for common problems (such as broken links).
-func (s *Site) Check() (problems []string, err error) {
-	pages, err := s.AllContentPages()
+func (s *Site) Check(ctx context.Context, contentVersion string) (problems []string, err error) {
+	pages, err := s.AllContentPages(ctx, contentVersion)
 	if err != nil {
 		return nil, err
 	}

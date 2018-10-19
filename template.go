@@ -27,5 +27,5 @@ func parseTemplates(templatesFS http.FileSystem, funcs template.FuncMap) (*templ
 		}
 		return nil
 	})
-	return tmpl, err
+	return tmpl, errors.WithMessage(err, "walking templates")
 }

@@ -16,11 +16,11 @@ func WalkFileSystem(fs http.FileSystem, walkFn func(path string) error) error {
 	path := "/"
 	root, err := fs.Open(path)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, fmt.Sprintf("open walk root %s", path))
 	}
 	fi, err := root.Stat()
 	if err != nil {
-		return err
+		return errors.WithMessage(err, fmt.Sprintf("stat walk root %s", path))
 	}
 
 	type queueItem struct {
@@ -38,11 +38,11 @@ func WalkFileSystem(fs http.FileSystem, walkFn func(path string) error) error {
 			}
 			dir, err := fs.Open(item.path)
 			if err != nil {
-				return err
+				return errors.WithMessage(err, fmt.Sprintf("open %s", item.path))
 			}
 			entries, err := dir.Readdir(-1)
 			if err != nil {
-				return err
+				return errors.WithMessage(err, fmt.Sprintf("readdir %s", item.path))
 			}
 			sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
 			for _, e := range entries {
