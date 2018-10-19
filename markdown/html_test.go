@@ -12,6 +12,8 @@ func TestRewriteRelativeURLsInHTML(t *testing.T) {
 
 	tests := map[string]string{
 		`<a href="./b">b</a><a href="./c/d">c/d</a>`: `<a href="/a/b">b</a><a href="/a/c/d">c/d</a>`,
+		`<img src="b/c">`:  `<img src="/a/b/c">`,
+		`<img src="b/c"/>`: `<img src="/a/b/c"/>`,
 	}
 	for input, want := range tests {
 		t.Run(input, func(t *testing.T) {

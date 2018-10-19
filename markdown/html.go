@@ -33,7 +33,7 @@ func rewriteRelativeURLsInHTML(htmlFragment []byte, opt Options) ([]byte, error)
 			break
 		}
 		tok := z.Token()
-		if tok.Type == html.StartTagToken {
+		if tok.Type == html.StartTagToken || tok.Type == html.SelfClosingTagToken {
 			switch tok.DataAtom {
 			case atom.A:
 				for i, attr := range tok.Attr {
