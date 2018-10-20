@@ -61,7 +61,7 @@ func (s *Site) checkContentPage(page *ContentPage) (problems []string, err error
 		return blackfriday.GoToNext
 	})
 
-	data, err := s.RenderContentPage(page)
+	data, err := s.RenderContentPage(&PageData{Content: page})
 	if err != nil {
 		return nil, err
 	}

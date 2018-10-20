@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sourcegraph/docsite"
@@ -150,8 +151,15 @@ type versionedFileSystemURL struct {
 	url string
 
 	mu    sync.Mutex
-	cache map[string]http.FileSystem
+	cache map[string]fileSystemCacheEntry
 }
+
+type fileSystemCacheEntry struct {
+	fs http.FileSystem
+	at time.Time
+}
+
+const fileSystemCacheTTL = 1 * time.Hour
 
 func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version string) (http.FileSystem, error) {
 	// HACK(sqs): this works for codeload.github.com
@@ -164,12 +172,17 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 
 	fs.mu.Lock()
 	if fs.cache == nil {
-		fs.cache = map[string]http.FileSystem{}
+		fs.cache = map[string]fileSystemCacheEntry{}
 	}
-	vfs, ok := fs.cache[version]
+	e, ok := fs.cache[version]
+	if ok && time.Since(e.at) > fileSystemCacheTTL {
+		log.Printf("# Cached site data expired after %s, will re-download", fileSystemCacheTTL)
+		delete(fs.cache, version)
+		ok = false
+	}
 	fs.mu.Unlock()
 	if ok {
-		return vfs, nil
+		return e.fs, nil
 	}
 
 	urlStr := strings.Replace(fs.url, "$VERSION", version, -1)
@@ -178,7 +191,7 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 		return nil, err
 	}
 	fs.mu.Lock()
-	fs.cache[version] = vfs
+	fs.cache[version] = fileSystemCacheEntry{fs: vfs, at: time.Now()}
 	fs.mu.Unlock()
 	return vfs, nil
 }
@@ -199,6 +212,11 @@ func zipFileSystemAtURL(url, dir string) (http.FileSystem, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &os.PathError{Op: "Get", Path: url, Err: os.ErrNotExist}
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, &os.PathError{Op: "Get", Path: url, Err: fmt.Errorf("HTTP response status code %d", resp.StatusCode)}
+	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

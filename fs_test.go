@@ -2,8 +2,8 @@ package docsite
 
 import (
 	"context"
-	"fmt"
 	"net/http"
+	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -45,7 +45,7 @@ type versionedFileSystem map[string]http.FileSystem
 func (vfs versionedFileSystem) OpenVersion(_ context.Context, version string) (http.FileSystem, error) {
 	fs, ok := vfs[version]
 	if !ok {
-		return nil, fmt.Errorf("file system version not found: %q", version)
+		return nil, &os.PathError{Op: "OpenVersion", Path: version, Err: os.ErrNotExist}
 	}
 	return fs, nil
 }

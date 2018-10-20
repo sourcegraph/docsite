@@ -17,11 +17,15 @@ import (
 var gifData, _ = base64.RawStdEncoding.DecodeString("R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw")
 
 func TestSite_Handler(t *testing.T) {
-	checkResponseHTTPOK := func(t *testing.T, rr *httptest.ResponseRecorder) {
+	checkResponseStatus := func(t *testing.T, rr *httptest.ResponseRecorder, want int) {
 		t.Helper()
-		if want := http.StatusOK; rr.Code != want {
+		if rr.Code != want {
 			t.Errorf("got HTTP status %d, want %d", rr.Code, want)
 		}
+	}
+	checkResponseHTTPOK := func(t *testing.T, rr *httptest.ResponseRecorder) {
+		t.Helper()
+		checkResponseStatus(t, rr, http.StatusOK)
 	}
 	checkContentPageResponse := func(t *testing.T, rr *httptest.ResponseRecorder) {
 		t.Helper()
@@ -34,8 +38,13 @@ func TestSite_Handler(t *testing.T) {
 		Templates: httpfs.New(mapfs.New(map[string]string{
 			"template.html": `
 {{define "root" -}}
-{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
-{{markdown .}}
+{{with .Content}}
+	{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
+	{{markdown .}}
+{{else}}
+	{{if .ContentVersionNotFoundError}}content version not found{{end}}
+	{{if .ContentPageNotFoundError}}content page not found{{end}}
+{{end}}
 {{- end}}`,
 		})),
 		Content: versionedFileSystem{
@@ -120,6 +129,58 @@ func TestSite_Handler(t *testing.T) {
 				checkResponseHTTPOK(t, rr)
 				checkContentPageResponse(t, rr)
 				if want := "other version a"; !strings.Contains(rr.Body.String(), want) {
+					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
+				}
+			})
+		})
+
+		t.Run("version not found", func(t *testing.T) {
+			t.Run("root", func(t *testing.T) {
+				rr := httptest.NewRecorder()
+				rr.Body = new(bytes.Buffer)
+				req, _ := http.NewRequest("GET", "/@badversion", nil)
+				handler.ServeHTTP(rr, req)
+				checkResponseStatus(t, rr, http.StatusNotFound)
+				checkContentPageResponse(t, rr)
+				if want := "content version not found"; !strings.Contains(rr.Body.String(), want) {
+					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
+				}
+			})
+
+			t.Run("page", func(t *testing.T) {
+				rr := httptest.NewRecorder()
+				rr.Body = new(bytes.Buffer)
+				req, _ := http.NewRequest("GET", "/@badversion/a", nil)
+				handler.ServeHTTP(rr, req)
+				checkResponseStatus(t, rr, http.StatusNotFound)
+				checkContentPageResponse(t, rr)
+				if want := "content version not found"; !strings.Contains(rr.Body.String(), want) {
+					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
+				}
+			})
+		})
+
+		t.Run("page not found", func(t *testing.T) {
+			t.Run("default version", func(t *testing.T) {
+				rr := httptest.NewRecorder()
+				rr.Body = new(bytes.Buffer)
+				req, _ := http.NewRequest("GET", "/doesntexist", nil)
+				handler.ServeHTTP(rr, req)
+				checkResponseStatus(t, rr, http.StatusNotFound)
+				checkContentPageResponse(t, rr)
+				if want := "content page not found"; !strings.Contains(rr.Body.String(), want) {
+					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
+				}
+			})
+
+			t.Run("other version", func(t *testing.T) {
+				rr := httptest.NewRecorder()
+				rr.Body = new(bytes.Buffer)
+				req, _ := http.NewRequest("GET", "/@otherversion/doesntexist", nil)
+				handler.ServeHTTP(rr, req)
+				checkResponseStatus(t, rr, http.StatusNotFound)
+				checkContentPageResponse(t, rr)
+				if want := "content page not found"; !strings.Contains(rr.Body.String(), want) {
 					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
 				}
 			})

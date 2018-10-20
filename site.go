@@ -66,12 +66,11 @@ func (s *Site) newContentPage(filePath string, data []byte, contentVersion strin
 		return nil, errors.WithMessage(err, fmt.Sprintf("run Markdown for %s", filePath))
 	}
 	return &ContentPage{
-		Path:           path,
-		FilePath:       filePath,
-		Data:           data,
-		Doc:            *doc,
-		Breadcrumbs:    makeBreadcrumbEntries(path),
-		ContentVersion: contentVersion,
+		Path:        path,
+		FilePath:    filePath,
+		Data:        data,
+		Doc:         *doc,
+		Breadcrumbs: makeBreadcrumbEntries(path),
 	}, nil
 }
 
@@ -117,8 +116,20 @@ func (s *Site) ResolveContentPage(ctx context.Context, contentVersion, path stri
 	return s.newContentPage(filePath, data, contentVersion)
 }
 
+// PageData is the data available to the HTML template used to render a page.
+type PageData struct {
+	ContentVersion  string // content version string requested
+	ContentPagePath string // content page path requested
+
+	ContentVersionNotFoundError bool // whether the requested version was not found
+	ContentPageNotFoundError    bool // whether the requested content page was not found
+
+	// Content is the content page, when it is found.
+	Content *ContentPage
+}
+
 // RenderContentPage renders a content page using the template.
-func (s *Site) RenderContentPage(page *ContentPage) ([]byte, error) {
+func (s *Site) RenderContentPage(page *PageData) ([]byte, error) {
 	funcs := template.FuncMap{
 		"asset": func(path string) string {
 			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()

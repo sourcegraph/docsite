@@ -12,9 +12,15 @@ import (
 func (s *Site) Handler() http.Handler {
 	m := http.NewServeMux()
 
+	const longCache = "max-age=3600"
+
 	// Serve assets using http.FileServer.
 	if s.AssetsBase != nil {
-		m.Handle(s.AssetsBase.Path, http.StripPrefix(s.AssetsBase.Path, http.FileServer(s.Assets)))
+		assetsFileServer := http.FileServer(s.Assets)
+		m.Handle(s.AssetsBase.Path, http.StripPrefix(s.AssetsBase.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", longCache)
+			assetsFileServer.ServeHTTP(w, r)
+		})))
 	}
 
 	// Serve content.
@@ -43,37 +49,68 @@ func (s *Site) Handler() http.Handler {
 			// Serve non-Markdown content files (such as images) using http.FileServer.
 			content, err := s.Content.OpenVersion(r.Context(), contentVersion)
 			if err != nil {
+				w.Header().Set("Cache-Control", "max-age=0")
 				if os.IsNotExist(err) {
-					http.Error(w, "version not found", http.StatusNotFound)
+					http.Error(w, "content version not found", http.StatusNotFound)
 				} else {
-					http.Error(w, "version error: "+err.Error(), http.StatusInternalServerError)
+					http.Error(w, "content version error: "+err.Error(), http.StatusInternalServerError)
 				}
 				return
 			}
+			w.Header().Set("Cache-Control", longCache)
 			http.FileServer(content).ServeHTTP(w, r)
 			return
 		}
 
-		page, err := s.ResolveContentPage(r.Context(), contentVersion, r.URL.Path)
+		data := PageData{
+			ContentVersion:  contentVersion,
+			ContentPagePath: r.URL.Path,
+		}
+		content, err := s.Content.OpenVersion(r.Context(), contentVersion)
 		if err != nil {
-			w.Header().Set("Cache-Control", "max-age=0")
-			if os.IsNotExist(err) {
-				http.Error(w, "not found", http.StatusNotFound)
-			} else {
-				http.Error(w, "error: "+err.Error(), http.StatusInternalServerError)
+			// Version not found.
+			if !os.IsNotExist(err) {
+				w.Header().Set("Cache-Control", "max-age=0")
+				http.Error(w, "content version error: "+err.Error(), http.StatusInternalServerError)
+				return
 			}
-			return
+			data.ContentVersionNotFoundError = true
+		} else {
+			// Version found.
+			filePath, fileData, err := resolveAndReadAll(content, r.URL.Path)
+			if err == nil {
+				// Content page found.
+				data.Content, err = s.newContentPage(filePath, fileData, contentVersion)
+			}
+			if err != nil {
+				// Content page not found.
+				if !os.IsNotExist(err) {
+					w.Header().Set("Cache-Control", "max-age=0")
+					http.Error(w, "content error: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				data.ContentPageNotFoundError = true
+			}
 		}
-		data, err := s.RenderContentPage(page)
+
+		respData, err := s.RenderContentPage(&data)
 		if err != nil {
 			w.Header().Set("Cache-Control", "max-age=0")
-			http.Error(w, "error: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Don't cache errors; do cache on success.
+		if data.Content == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Header().Set("Cache-Control", "max-age=0")
+		} else {
+			w.Header().Set("Cache-Control", "max-age=60")
+		}
+
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "max-age=0")
 		if r.Method == "GET" {
-			w.Write(data)
+			w.Write(respData)
 		}
 	})))
 
