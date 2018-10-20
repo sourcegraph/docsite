@@ -39,3 +39,19 @@ The `docsite` tool requires site data to be available in any of the following wa
    ```
    DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/master#docs.sourcegraph.com-master/templates/","assets":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/master#docs.sourcegraph.com-master/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/master#sourcegraph-master/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
    ```
+
+## Development
+
+### Release a new version
+
+```shell
+docker build -t sourcegraph/docsite . && \
+docker push sourcegraph/docsite
+```
+
+> For internal Sourcegraph usage:
+>   ``` shell
+>   docker build -t sourcegraph/docsite . && \
+>   docker tag sourcegraph/docsite us.gcr.io/sourcegraph-dev/docsite && \
+>   docker push us.gcr.io/sourcegraph-dev/docsite
+>   ```
