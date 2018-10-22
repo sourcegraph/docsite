@@ -159,7 +159,7 @@ type fileSystemCacheEntry struct {
 	at time.Time
 }
 
-const fileSystemCacheTTL = 1 * time.Hour
+const fileSystemCacheTTL = 5 * time.Minute
 
 func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version string) (http.FileSystem, error) {
 	// HACK(sqs): this works for codeload.github.com
