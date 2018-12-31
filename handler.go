@@ -24,7 +24,13 @@ func (s *Site) Handler() http.Handler {
 	}
 
 	// Serve content.
-	m.Handle(s.Base.Path, http.StripPrefix(s.Base.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var basePath string
+	if s.Base != nil {
+		basePath = s.Base.Path
+	} else {
+		basePath = "/"
+	}
+	m.Handle(basePath, http.StripPrefix(basePath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return

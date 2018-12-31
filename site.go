@@ -57,9 +57,14 @@ func (s *Site) newContentPage(filePath string, data []byte, contentVersion strin
 		urlPathPrefix += "/"
 	}
 
+	base := s.Base
+	if base == nil {
+		base = &url.URL{Path: "/"}
+	}
+
 	path := contentFilePathToPath(filePath)
 	doc, err := markdown.Run(data, markdown.Options{
-		Base:                      s.Base.ResolveReference(&url.URL{Path: urlPathPrefix}),
+		Base:                      base.ResolveReference(&url.URL{Path: urlPathPrefix}),
 		ContentFilePathToLinkPath: contentFilePathToPath,
 	})
 	if err != nil {

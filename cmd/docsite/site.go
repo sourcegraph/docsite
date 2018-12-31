@@ -56,20 +56,21 @@ type docsiteConfig struct {
 }
 
 func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
-	var checkIgnoreURLPattern *regexp.Regexp
+	var site docsite.Site
 	if config.Check.IgnoreURLPattern != "" {
 		var err error
-		checkIgnoreURLPattern, err = regexp.Compile(config.Check.IgnoreURLPattern)
+		site.CheckIgnoreURLPattern, err = regexp.Compile(config.Check.IgnoreURLPattern)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	return &docsite.Site{
-		Base:                  &url.URL{Path: config.BaseURLPath},
-		AssetsBase:            &url.URL{Path: config.AssetsBaseURLPath},
-		CheckIgnoreURLPattern: checkIgnoreURLPattern,
-	}, nil
+	if config.BaseURLPath != "" {
+		site.Base = &url.URL{Path: config.BaseURLPath}
+	}
+	if config.AssetsBaseURLPath != "" {
+		site.AssetsBase = &url.URL{Path: config.AssetsBaseURLPath}
+	}
+	return &site, nil
 }
 
 // openDocsiteFromConfig reads the documentation site data from a docsite.json file. All file system
