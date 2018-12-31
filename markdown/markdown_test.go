@@ -54,12 +54,22 @@ title: Metadata title
 }
 
 func TestRenderer(t *testing.T) {
-	t.Run("heading anchor link", func(t *testing.T) {
+	t.Run("heading anchor link ignores special chars", func(t *testing.T) {
 		doc, err := Run([]byte(`## A ' B " C & D ? E`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
 		want := `<h2 id="a-b-c-d-e"><a name="a-b-c-d-e" class="anchor" href="#a-b-c-d-e" rel="nofollow" aria-hidden="true"></a>A &lsquo; B &ldquo; C &amp; D ? E</h2>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("heading anchor link ignores markup", func(t *testing.T) {
+		doc, err := Run([]byte(`## [A](B)`), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<h2 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true"></a><a href="B">A</a></h2>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}

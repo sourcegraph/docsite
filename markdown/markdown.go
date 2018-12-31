@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/russross/blackfriday"
+	"github.com/shurcooL/sanitized_anchor_name"
 )
 
 // Document is a parsed and HTML-rendered Markdown document.
@@ -82,6 +83,9 @@ type renderer struct {
 func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
 	case blackfriday.Heading:
+		// Make the heading ID based on the text contents, not the raw contents.
+		node.HeadingID = sanitized_anchor_name.Create(renderText(node))
+
 		// Add "#" anchor links to headers to make it easy for users to discover and copy links
 		// to sections of a document.
 		if status := r.HTMLRenderer.RenderNode(w, node, entering); status != blackfriday.GoToNext {
