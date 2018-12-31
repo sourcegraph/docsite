@@ -38,7 +38,7 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 		} else if err != nil {
 			return nil, nil, errors.WithMessage(err, "reading docsite config file (from -config flag)")
 		}
-		return openDocsiteFromConfig(data)
+		return openDocsiteFromConfig(data, filepath.Dir(path))
 	}
 	return nil, nil, fmt.Errorf("no docsite.json config file found (search paths: %s)", *configPath)
 }
@@ -72,8 +72,9 @@ func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
 	}, nil
 }
 
-// openDocsiteFromConfig reads the documentation site data from a docsite.json file.
-func openDocsiteFromConfig(configData []byte) (*docsite.Site, *docsiteConfig, error) {
+// openDocsiteFromConfig reads the documentation site data from a docsite.json file. All file system
+// paths in docsite.json are resolved relative to baseDir.
+func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *docsiteConfig, error) {
 	var config docsiteConfig
 	if err := json.Unmarshal(configData, &config); err != nil {
 		return nil, nil, errors.WithMessage(err, "reading docsite configuration")
@@ -88,7 +89,7 @@ func openDocsiteFromConfig(configData []byte) (*docsite.Site, *docsiteConfig, er
 		if dir == "" {
 			return nil
 		}
-		return http.Dir(dir)
+		return http.Dir(filepath.Join(baseDir, dir))
 	}
 	site.Templates = httpDirOrNil(config.Templates)
 	site.Content = nonVersionedFileSystem{httpDirOrNil(config.Content)}
