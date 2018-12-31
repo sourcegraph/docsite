@@ -21,7 +21,19 @@ func newTree(node *blackfriday.Node) []*SectionNode {
 				stack = stack[:len(stack)-1]
 			}
 
-			n := &SectionNode{Title: renderText(node), URL: "#" + node.HeadingID, Level: node.Level}
+			// If heading consists only of a link, use the link URL (not the heading ID) as the
+			// destination.
+			var url string
+			if hasSingleChildOfType(node, blackfriday.Link) {
+				if link := getFirstChildLink(node); link != nil && len(link.LinkData.Destination) > 0 {
+					url = string(link.LinkData.Destination)
+				}
+			}
+			if url == "" {
+				url = "#" + node.HeadingID
+			}
+
+			n := &SectionNode{Title: renderText(node), URL: url, Level: node.Level}
 			cur().Children = append(cur().Children, n)
 			stack = append(stack, n)
 		}

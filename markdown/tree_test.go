@@ -69,3 +69,18 @@ func TestNewTree(t *testing.T) {
 		t.Errorf("\ngot:\n%s\n\nwant:\n%s", a, b)
 	}
 }
+
+func TestNewTree_link(t *testing.T) {
+	ast := NewParser().Parse([]byte(`# [A](B)`))
+	tree := newTree(ast)
+	want := []*SectionNode{
+		{
+			Title: "A", URL: "B", Level: 1,
+		},
+	}
+	if !reflect.DeepEqual(tree, want) {
+		a, _ := json.MarshalIndent(tree, "", "  ")
+		b, _ := json.MarshalIndent(want, "", "  ")
+		t.Errorf("\ngot:\n%s\n\nwant:\n%s", a, b)
+	}
+}

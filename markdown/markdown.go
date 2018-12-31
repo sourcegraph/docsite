@@ -92,7 +92,12 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 			return status
 		}
 		if entering {
-			fmt.Fprintf(w, `<a name="%s" class="anchor" href="#%s" rel="nofollow" aria-hidden="true"></a>`, node.HeadingID, node.HeadingID)
+			// If heading consists only of a link, do not emit an anchor link.
+			if hasSingleChildOfType(node, blackfriday.Link) {
+				fmt.Fprintf(w, `<a name="%s" aria-hidden="true"></a>`, node.HeadingID)
+			} else {
+				fmt.Fprintf(w, `<a name="%s" class="anchor" href="#%s" rel="nofollow" aria-hidden="true"></a>`, node.HeadingID, node.HeadingID)
+			}
 		}
 		return blackfriday.GoToNext
 	case blackfriday.Link, blackfriday.Image:
@@ -162,4 +167,28 @@ func renderText(node *blackfriday.Node) string {
 		return blackfriday.GoToNext
 	})
 	return string(bytes.Join(parts, nil))
+}
+
+func hasSingleChildOfType(node *blackfriday.Node, typ blackfriday.NodeType) bool {
+	seenLink := false
+	for child := node.FirstChild; child != nil; child = child.Next {
+		switch {
+		case child.Type == blackfriday.Text && len(child.Literal) == 0:
+			continue
+		case child.Type == blackfriday.Link && !seenLink:
+			seenLink = true
+		default:
+			return false
+		}
+	}
+	return seenLink
+}
+
+func getFirstChildLink(node *blackfriday.Node) *blackfriday.Node {
+	for child := node.FirstChild; child != nil; child = child.Next {
+		if child.Type == blackfriday.Link {
+			return child
+		}
+	}
+	return nil
 }

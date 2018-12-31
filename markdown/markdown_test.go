@@ -65,11 +65,21 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("heading anchor link ignores markup", func(t *testing.T) {
+		doc, err := Run([]byte(`## [A](B) C`), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<h2 id="a-c"><a name="a-c" class="anchor" href="#a-c" rel="nofollow" aria-hidden="true"></a><a href="B">A</a> C</h2>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("heading consisting only of link uses link URL", func(t *testing.T) {
 		doc, err := Run([]byte(`## [A](B)`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h2 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true"></a><a href="B">A</a></h2>` + "\n"
+		want := `<h2 id="a"><a name="a" aria-hidden="true"></a><a href="B">A</a></h2>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
