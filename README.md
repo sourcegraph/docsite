@@ -23,7 +23,7 @@ To use docsite for docs.sourcegraph.com, see the [docs.sourcegraph.com README](h
 The `docsite` tool requires site data to be available in any of the following ways:
 
 - A `docsite.json` file (or other file specified in the `-config` flag's search paths), as in the following example:
-   ```
+   ```json
    {
      "templates": "templates",
      "content": "../sourcegraph/doc",
