@@ -74,6 +74,36 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
+	t.Run("syntax highlighting go", func(t *testing.T) {
+		doc, err := Run([]byte("```go\nvar foo struct{}\n```"), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<pre style="background-color:#fff"><span style="color:#00f">var</span> foo <span style="color:#00f">struct</span>{}` + "\n" + `</pre>`
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("syntax highlighting typescript", func(t *testing.T) {
+		doc, err := Run([]byte("```typescript\nconst foo = 'bar'\n```"), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<pre style="background-color:#fff"><span style="color:#00f">const</span> foo = <span style="color:#a31515">&#39;bar&#39;</span>` + "\n" + `</pre>`
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("syntax highlighting json", func(t *testing.T) {
+		doc, err := Run([]byte("```json\n{\"foo\": 123}\n```"), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<pre style="background-color:#fff">{&#34;foo&#34;: 123}` + "\n" + `</pre>`
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
 	t.Run("heading consisting only of link uses link URL", func(t *testing.T) {
 		doc, err := Run([]byte(`## [A](B)`), Options{})
 		if err != nil {

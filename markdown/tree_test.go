@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewTree(t *testing.T) {
-	ast := NewParser().Parse([]byte(`# 1a
+	ast := NewParser(NewBfRenderer()).Parse([]byte(`# 1a
 ## 2a
 ### 3a
 #### 4
@@ -71,7 +71,7 @@ func TestNewTree(t *testing.T) {
 }
 
 func TestNewTree_link(t *testing.T) {
-	ast := NewParser().Parse([]byte(`# [A](B)`))
+	ast := NewParser(NewBfRenderer()).Parse([]byte(`# [A](B)`))
 	tree := newTree(ast)
 	want := []*SectionNode{
 		{

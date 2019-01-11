@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/russross/blackfriday"
 	"github.com/sourcegraph/docsite/markdown"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 // Check checks the site content for common problems (such as broken links).
@@ -35,7 +35,7 @@ func (s *Site) Check(ctx context.Context, contentVersion string) (problems []str
 }
 
 func (s *Site) checkContentPage(page *ContentPage) (problems []string, err error) {
-	ast := markdown.NewParser().Parse(page.Data)
+	ast := markdown.NewParser(markdown.NewBfRenderer()).Parse(page.Data)
 	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 		if entering {
 			if node.Type == blackfriday.Link || node.Type == blackfriday.Image {

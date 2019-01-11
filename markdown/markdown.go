@@ -6,8 +6,10 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/russross/blackfriday"
+	"github.com/Depado/bfchroma"
+	"github.com/alecthomas/chroma/styles"
 	"github.com/shurcooL/sanitized_anchor_name"
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 // Document is a parsed and HTML-rendered Markdown document.
@@ -38,8 +40,23 @@ type Options struct {
 }
 
 // NewParser creates a new Markdown parser (the same one used by Run).
-func NewParser() *blackfriday.Markdown {
-	return blackfriday.New(blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs))
+func NewParser(renderer blackfriday.Renderer) *blackfriday.Markdown {
+	return blackfriday.New(
+		blackfriday.WithRenderer(renderer),
+		blackfriday.WithExtensions(blackfriday.CommonExtensions|blackfriday.AutoHeadingIDs),
+	)
+}
+
+// NewBfRenderer creates the default blackfriday renderer to be passed to NewParser()
+func NewBfRenderer() blackfriday.Renderer {
+	return bfchroma.NewRenderer(
+		bfchroma.ChromaStyle(styles.VisualStudio),
+		bfchroma.Extend(
+			blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+				Flags: blackfriday.CommonHTMLFlags,
+			}),
+		),
+	)
 }
 
 // Run parses and HTML-renders a Markdown document (with optional metadata in the Markdown "front
@@ -50,12 +67,11 @@ func Run(input []byte, opt Options) (*Document, error) {
 		return nil, err
 	}
 
-	ast := NewParser().Parse(markdown)
+	bfRenderer := NewBfRenderer()
+	ast := NewParser(bfRenderer).Parse(markdown)
 	renderer := &renderer{
-		Options: opt,
-		HTMLRenderer: blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
-			Flags: blackfriday.CommonHTMLFlags,
-		}),
+		Options:  opt,
+		Renderer: bfRenderer,
 	}
 	var buf bytes.Buffer
 	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
@@ -77,7 +93,7 @@ func Run(input []byte, opt Options) (*Document, error) {
 
 type renderer struct {
 	Options
-	*blackfriday.HTMLRenderer
+	blackfriday.Renderer
 }
 
 func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
@@ -88,7 +104,7 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 
 		// Add "#" anchor links to headers to make it easy for users to discover and copy links
 		// to sections of a document.
-		if status := r.HTMLRenderer.RenderNode(w, node, entering); status != blackfriday.GoToNext {
+		if status := r.Renderer.RenderNode(w, node, entering); status != blackfriday.GoToNext {
 			return status
 		}
 		if entering {
@@ -103,7 +119,7 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 	case blackfriday.Link, blackfriday.Image:
 		// Bypass the (HTMLRendererParams).AbsolutePrefix field entirely and perform our own URL
 		// resolving. This fixes the issue reported in
-		// https://github.com/russross/blackfriday/pull/231 where relative URLs starting with "."
+		// https://github.com/russross/blackfriday.v2/pull/231 where relative URLs starting with "."
 		// are not treated as relative URLs.
 		if entering {
 			dest, err := url.Parse(string(node.LinkData.Destination))
@@ -145,7 +161,7 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 			return blackfriday.GoToNext
 		}
 	}
-	return r.HTMLRenderer.RenderNode(w, node, entering)
+	return r.Renderer.RenderNode(w, node, entering)
 }
 
 func getTitle(node *blackfriday.Node) string {
