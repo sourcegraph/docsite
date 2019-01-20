@@ -22,10 +22,6 @@ type VersionedFileSystem interface {
 
 // Site represents a documentation site, including all of its templates, assets, and content.
 type Site struct {
-	// Templates is the file system containing the Go html/template templates used to render site
-	// pages
-	Templates http.FileSystem
-
 	// Content is the versioned file system containing the Markdown files and assets (e.g., images)
 	// embedded in them.
 	Content VersionedFileSystem
@@ -33,6 +29,10 @@ type Site struct {
 	// Base is the base URL (typically including only the path, such as "/" or "/help/") where the
 	// site is available.
 	Base *url.URL
+
+	// Templates is the file system containing the Go html/template templates used to render site
+	// pages
+	Templates http.FileSystem
 
 	// Assets is the file system containing the site-wide static asset files (e.g., global styles
 	// and logo).
