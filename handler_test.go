@@ -35,18 +35,6 @@ func TestSite_Handler(t *testing.T) {
 	}
 
 	site := Site{
-		Templates: httpfs.New(mapfs.New(map[string]string{
-			"template.html": `
-{{define "root" -}}
-{{with .Content}}
-	{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
-	{{markdown .}}
-{{else}}
-	{{if .ContentVersionNotFoundError}}content version not found{{end}}
-	{{if .ContentPageNotFoundError}}content page not found{{end}}
-{{end}}
-{{- end}}`,
-		})),
 		Content: versionedFileSystem{
 			"": httpfs.New(mapfs.New(map[string]string{
 				"index.md":      "z [a/b](a/b/index.md)",
@@ -60,6 +48,18 @@ func TestSite_Handler(t *testing.T) {
 			})),
 		},
 		Base: &url.URL{Path: "/"},
+		Templates: httpfs.New(mapfs.New(map[string]string{
+			"template.html": `
+{{define "root" -}}
+{{with .Content}}
+	{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
+	{{markdown .}}
+{{else}}
+	{{if .ContentVersionNotFoundError}}content version not found{{end}}
+	{{if .ContentPageNotFoundError}}content page not found{{end}}
+{{end}}
+{{- end}}`,
+		})),
 		Assets: httpfs.New(mapfs.New(map[string]string{
 			"g.gif": string(gifData),
 		})),

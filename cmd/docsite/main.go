@@ -37,7 +37,7 @@ var (
 )
 
 var (
-	configPath = commandLine.String("config", "docsite.json"+string(os.PathListSeparator)+filepath.Join("doc", "docsite.json"), "search `paths` for docsite JSON config")
+	configPath = commandLine.String("config", "docsite.json"+string(os.PathListSeparator)+filepath.Join("doc", "docsite.json"), "search `paths` for docsite JSON config (see https://github.com/sourcegraph/docsite#site-data)")
 )
 
 func main() {

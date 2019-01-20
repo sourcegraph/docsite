@@ -44,10 +44,13 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 }
 
 // docsiteConfig is the shape of docsite.json.
+//
+// See ["Site data" in README.md](../../README.md#site-data) for documentation on this type's
+// fields.
 type docsiteConfig struct {
-	Templates         string
 	Content           string
 	BaseURLPath       string
+	Templates         string
 	Assets            string
 	AssetsBaseURLPath string
 	Check             struct {
