@@ -42,7 +42,7 @@ func TestWalkFileSystem(t *testing.T) {
 
 type versionedFileSystem map[string]http.FileSystem
 
-func (vfs versionedFileSystem) OpenVersion(_ context.Context, version string) (http.FileSystem, error) {
+func (vfs versionedFileSystem) OpenVersion(_ context.Context, version, path string) (http.FileSystem, error) {
 	fs, ok := vfs[version]
 	if !ok {
 		return nil, &os.PathError{Op: "OpenVersion", Path: version, Err: os.ErrNotExist}

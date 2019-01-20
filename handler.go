@@ -53,7 +53,7 @@ func (s *Site) Handler() http.Handler {
 
 		if IsContentAsset(r.URL.Path) {
 			// Serve non-Markdown content files (such as images) using http.FileServer.
-			content, err := s.Content.OpenVersion(r.Context(), contentVersion)
+			content, err := s.Content.OpenVersion(r.Context(), contentVersion, r.URL.Path)
 			if err != nil {
 				w.Header().Set("Cache-Control", "max-age=0")
 				if os.IsNotExist(err) {
@@ -72,7 +72,7 @@ func (s *Site) Handler() http.Handler {
 			ContentVersion:  contentVersion,
 			ContentPagePath: r.URL.Path,
 		}
-		content, err := s.Content.OpenVersion(r.Context(), contentVersion)
+		content, err := s.Content.OpenVersion(r.Context(), contentVersion, r.URL.Path)
 		if err != nil {
 			// Version not found.
 			if !os.IsNotExist(err) {

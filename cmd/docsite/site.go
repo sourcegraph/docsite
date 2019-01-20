@@ -103,7 +103,7 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 
 type nonVersionedFileSystem struct{ http.FileSystem }
 
-func (fs nonVersionedFileSystem) OpenVersion(_ context.Context, version string) (http.FileSystem, error) {
+func (fs nonVersionedFileSystem) OpenVersion(_ context.Context, version, path string) (http.FileSystem, error) {
 	if version != "" {
 		return nil, errors.New("content versioning is not supported")
 	}
@@ -137,7 +137,7 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	content := &versionedFileSystemURL{url: config.Content}
 	// Prefetch content at its default version. This ensures that the program exits if the content
 	// default version is unavailable.
-	if _, err := content.OpenVersion(context.Background(), ""); err != nil {
+	if _, err := content.OpenVersion(context.Background(), "", "/"); err != nil {
 		return nil, nil, errors.WithMessage(err, "downloading content default version")
 	}
 
@@ -166,7 +166,7 @@ type fileSystemCacheEntry struct {
 
 const fileSystemCacheTTL = 5 * time.Minute
 
-func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version string) (http.FileSystem, error) {
+func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version, path string) (http.FileSystem, error) {
 	// HACK(sqs): this works for codeload.github.com
 	if version == "" {
 		version = "HEAD"

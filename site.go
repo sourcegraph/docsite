@@ -17,7 +17,7 @@ import (
 
 // VersionedFileSystem represents multiple versions of an http.FileSystem.
 type VersionedFileSystem interface {
-	OpenVersion(ctx context.Context, version string) (http.FileSystem, error)
+	OpenVersion(ctx context.Context, version, path string) (http.FileSystem, error)
 }
 
 // Site represents a documentation site, including all of its templates, assets, and content.
@@ -81,7 +81,7 @@ func (s *Site) newContentPage(filePath string, data []byte, contentVersion strin
 
 // AllContentPages returns a list of all content pages in the site.
 func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*ContentPage, error) {
-	content, err := s.Content.OpenVersion(ctx, contentVersion)
+	content, err := s.Content.OpenVersion(ctx, contentVersion, "/")
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*C
 // If the resulting ContentPage differs from the path argument, the caller should (if possible)
 // communicate a redirect.
 func (s *Site) ResolveContentPage(ctx context.Context, contentVersion, path string) (*ContentPage, error) {
-	content, err := s.Content.OpenVersion(ctx, contentVersion)
+	content, err := s.Content.OpenVersion(ctx, contentVersion, path)
 	if err != nil {
 		return nil, err
 	}
