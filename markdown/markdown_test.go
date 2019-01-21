@@ -144,6 +144,47 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
+	t.Run("list", func(t *testing.T) {
+		t.Run("bare items", func(t *testing.T) {
+			doc, err := Run([]byte(`
+- a
+- b
+- c`), Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := `<ul>
+<li>a</li>
+<li>b</li>
+<li>c</li>
+</ul>` + "\n"
+			if string(doc.HTML) != want {
+				t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+			}
+		})
+		t.Run("nested items", func(t *testing.T) {
+			// Not sure why a single extra blank line causes all list items to be wrapped in <p>,
+			// but this is how GitHub works, too.
+			doc, err := Run([]byte(`
+- a
+
+- b
+- c`), Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := `<ul>
+<li><p>a</p></li>
+
+<li><p>b</p></li>
+
+<li><p>c</p></li>
+</ul>` + "\n"
+			if string(doc.HTML) != want {
+				t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+			}
+		})
+	})
 	t.Run("alerts", func(t *testing.T) {
 		doc, err := Run([]byte(`> NOTE: **a**
 
