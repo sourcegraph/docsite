@@ -74,6 +74,16 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
+	t.Run("disambiguates heading anchor", func(t *testing.T) {
+		doc, err := Run([]byte("# A\n\n# A"), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<h1 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n\n" + `<h1 id="a-2"><a name="a-2" class="anchor" href="#a-2" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
 	t.Run("syntax highlighting go", func(t *testing.T) {
 		doc, err := Run([]byte("```go\nvar foo struct{}\n```"), Options{})
 		if err != nil {
