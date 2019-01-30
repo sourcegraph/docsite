@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/url"
 	"reflect"
 	"testing"
@@ -79,9 +80,22 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h1 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n\n" + `<h1 id="a-2"><a name="a-2" class="anchor" href="#a-2" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n"
+		want := `<h1 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n\n" + `<h1 id="a-1"><a name="a-1" class="anchor" href="#a-1" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+		wantTree := []*SectionNode{
+			{
+				Title: "A", URL: "#a", Level: 1,
+			},
+			{
+				Title: "A", URL: "#a-1", Level: 1,
+			},
+		}
+		if !reflect.DeepEqual(doc.Tree, wantTree) {
+			a, _ := json.MarshalIndent(doc.Tree, "", "  ")
+			b, _ := json.MarshalIndent(wantTree, "", "  ")
+			t.Errorf("\ngot:\n%s\n\nwant:\n%s", a, b)
 		}
 	})
 	t.Run("syntax highlighting go", func(t *testing.T) {

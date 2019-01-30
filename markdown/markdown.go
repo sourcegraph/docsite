@@ -102,14 +102,17 @@ type renderer struct {
 func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
 	case blackfriday.Heading:
-		// Make the heading ID based on the text contents, not the raw contents.
-		node.HeadingID = sanitized_anchor_name.Create(renderText(node))
+		if entering {
+			// Make the heading ID based on the text contents, not the raw contents.
+			node.HeadingID = sanitized_anchor_name.Create(renderText(node))
 
-		// Ensure the heading ID is unique. The blackfriday package (in ensureUniqueHeadingID) also
-		// perform this step, but there is no way for us to see the final (unique) heading ID it
-		// generates. That means the "#" anchor link we generate, and the table of contents, would
-		// use the non-unique heading ID. Generating the heading ID ourselves fixes these issues.
-		node.HeadingID = r.ensureUniqueHeadingID(node.HeadingID)
+			// Ensure the heading ID is unique. The blackfriday package (in ensureUniqueHeadingID)
+			// also performs this step, but there is no way for us to see the final (unique) heading
+			// ID it generates. That means the "#" anchor link we generate, and the table of
+			// contents, would use the non-unique heading ID. Generating the heading ID ourselves
+			// fixes these issues.
+			node.HeadingID = r.ensureUniqueHeadingID(node.HeadingID)
+		}
 
 		// Add "#" anchor links to headers to make it easy for users to discover and copy links
 		// to sections of a document.
