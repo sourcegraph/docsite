@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/url"
+	"strings"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -37,7 +38,7 @@ func rewriteRelativeURLsInHTML(htmlFragment []byte, opt Options) ([]byte, error)
 			switch tok.DataAtom {
 			case atom.A:
 				for i, attr := range tok.Attr {
-					if attr.Key == "href" {
+					if attr.Key == "href" && !strings.HasPrefix(attr.Val, "#") {
 						attr.Val = resolveURL(attr.Val)
 						tok.Attr[i] = attr
 					}

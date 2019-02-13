@@ -135,7 +135,7 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 		// are not treated as relative URLs.
 		if entering {
 			dest, err := url.Parse(string(node.LinkData.Destination))
-			if err == nil && !dest.IsAbs() {
+			if err == nil && !dest.IsAbs() && dest.Path != "" {
 				if r.Options.ContentFilePathToLinkPath != nil {
 					dest.Path = r.Options.ContentFilePathToLinkPath(dest.Path)
 				}

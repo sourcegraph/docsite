@@ -168,6 +168,16 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
+	t.Run("anchor link", func(t *testing.T) {
+		doc, err := Run([]byte("[a](#b) <a href='#c'>d</a>"), Options{Base: &url.URL{Path: "/d/e"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p><a href="#b">a</a> <a href="#c">d</a></p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("got %q, want %q", string(doc.HTML), want)
+		}
+	})
 	t.Run("list", func(t *testing.T) {
 		t.Run("bare items", func(t *testing.T) {
 			doc, err := Run([]byte(`
