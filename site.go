@@ -87,18 +87,16 @@ func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*C
 	}
 
 	var pages []*ContentPage
-	err = WalkFileSystem(content, func(path string) error {
-		if isContentPage(path) {
-			data, err := ReadFile(content, path)
-			if err != nil {
-				return err
-			}
-			page, err := s.newContentPage(path, data, contentVersion)
-			if err != nil {
-				return err
-			}
-			pages = append(pages, page)
+	err = WalkFileSystem(content, isContentPage, func(path string) error {
+		data, err := ReadFile(content, path)
+		if err != nil {
+			return err
 		}
+		page, err := s.newContentPage(path, data, contentVersion)
+		if err != nil {
+			return err
+		}
+		pages = append(pages, page)
 		return nil
 	})
 	return pages, err

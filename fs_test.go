@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -24,14 +25,16 @@ func TestWalkFileSystem(t *testing.T) {
 	for _, path := range wantAllPaths {
 		files[path] = ""
 	}
+	files["x/y.png"] = "" // add file that does not pass the isMarkdown filter
 	fs := httpfs.New(mapfs.New(files))
 
 	var allPaths []string
+	isMarkdown := func(path string) bool { return filepath.Ext(path) == ".md" }
 	collect := func(path string) error {
 		allPaths = append(allPaths, path)
 		return nil
 	}
-	if err := WalkFileSystem(fs, collect); err != nil {
+	if err := WalkFileSystem(fs, isMarkdown, collect); err != nil {
 		t.Fatal(err)
 	}
 	sort.Strings(allPaths)
