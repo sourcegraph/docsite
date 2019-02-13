@@ -39,6 +39,12 @@ github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95 h1:
 github.com/shurcooL/sanitized_anchor_name v0.0.0-20170918181015-86672fcb3f95/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5IYyJwS/kOiWx8mHo=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
+github.com/sourcegraph/go-jsonschema v0.0.0-20190205151546-7939fa138765 h1:bFHV2WYU7J7MPdKTyaR6M7Ahhbn4cIdvbTRIRXprenM=
+github.com/sourcegraph/go-jsonschema v0.0.0-20190205151546-7939fa138765/go.mod h1:6DfNy4BLIggAeittTJ8o9z/6d1ly+YujBTSnv03i7Bk=
+github.com/sourcegraph/jsonschemadoc v0.0.0-20190213075727-fee9160d1880 h1:ohhgp/NMJhklUGX2Nng+bmJ46XMHBljKElLd4uQUWHA=
+github.com/sourcegraph/jsonschemadoc v0.0.0-20190213075727-fee9160d1880/go.mod h1:7jdxMdV6lVaEQ0MhiqoM7qAxi23fy2IBoXD8fN0z4po=
+github.com/sourcegraph/jsonschemadoc v0.0.0-20190214000648-1850b818f08c h1:MXlcJZ1VL5nNGkCj6ZTT71P4pImPkeG2lvzcJYzGvU4=
+github.com/sourcegraph/jsonschemadoc v0.0.0-20190214000648-1850b818f08c/go.mod h1:ovHiFoMDwf4nf7ynAc7lIhD4w0nc/6tO27DtVzqYrTQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.1/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
