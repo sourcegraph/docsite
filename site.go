@@ -47,7 +47,7 @@ type Site struct {
 }
 
 // newContentPage creates a new ContentPage in the site.
-func (s *Site) newContentPage(filePath string, data []byte, contentVersion string) (*ContentPage, error) {
+func (s *Site) newContentPage(ctx context.Context, filePath string, data []byte, contentVersion string) (*ContentPage, error) {
 	var urlPathPrefix string
 	if contentVersion != "" {
 		urlPathPrefix = "/@" + contentVersion + "/"
@@ -63,9 +63,11 @@ func (s *Site) newContentPage(filePath string, data []byte, contentVersion strin
 	}
 
 	path := contentFilePathToPath(filePath)
-	doc, err := markdown.Run(data, markdown.Options{
+	doc, err := markdown.Run(ctx, data, markdown.Options{
 		Base:                      base.ResolveReference(&url.URL{Path: urlPathPrefix}),
 		ContentFilePathToLinkPath: contentFilePathToPath,
+		Funcs:                     createMarkdownFuncs(s),
+		FuncInfo:                  markdown.FuncInfo{Version: contentVersion},
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("run Markdown for %s", filePath))
@@ -92,7 +94,7 @@ func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*C
 		if err != nil {
 			return err
 		}
-		page, err := s.newContentPage(path, data, contentVersion)
+		page, err := s.newContentPage(ctx, path, data, contentVersion)
 		if err != nil {
 			return err
 		}
@@ -116,7 +118,7 @@ func (s *Site) ResolveContentPage(ctx context.Context, contentVersion, path stri
 	if err != nil {
 		return nil, err
 	}
-	return s.newContentPage(filePath, data, contentVersion)
+	return s.newContentPage(ctx, filePath, data, contentVersion)
 }
 
 // PageData is the data available to the HTML template used to render a page.

@@ -2,9 +2,12 @@ package markdown
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -22,8 +25,9 @@ func check(t *testing.T, got, want Document) {
 }
 
 func TestRun(t *testing.T) {
+	ctx := context.Background()
 	t.Run("no metadata", func(t *testing.T) {
-		doc, err := Run([]byte(`# My title
+		doc, err := Run(ctx, []byte(`# My title
 Hello world github/linguist#1 **cool**, and #1!`), Options{})
 		if err != nil {
 			t.Fatal(err)
@@ -37,7 +41,7 @@ Hello world github/linguist#1 **cool**, and #1!`), Options{})
 		})
 	})
 	t.Run("metadata", func(t *testing.T) {
-		doc, err := Run([]byte(`---
+		doc, err := Run(ctx, []byte(`---
 title: Metadata title
 ---
 
@@ -55,8 +59,9 @@ title: Metadata title
 }
 
 func TestRenderer(t *testing.T) {
+	ctx := context.Background()
 	t.Run("heading anchor link ignores special chars", func(t *testing.T) {
-		doc, err := Run([]byte(`## A ' B " C & D ? E`), Options{})
+		doc, err := Run(ctx, []byte(`## A ' B " C & D ? E`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +71,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("heading anchor link ignores markup", func(t *testing.T) {
-		doc, err := Run([]byte(`## [A](B) C`), Options{})
+		doc, err := Run(ctx, []byte(`## [A](B) C`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -76,7 +81,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("disambiguates heading anchor", func(t *testing.T) {
-		doc, err := Run([]byte("# A\n\n# A"), Options{})
+		doc, err := Run(ctx, []byte("# A\n\n# A"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -99,7 +104,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("syntax highlighting go", func(t *testing.T) {
-		doc, err := Run([]byte("```go\nvar foo struct{}\n```"), Options{})
+		doc, err := Run(ctx, []byte("```go\nvar foo struct{}\n```"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -109,7 +114,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("syntax highlighting typescript", func(t *testing.T) {
-		doc, err := Run([]byte("```typescript\nconst foo = 'bar'\n```"), Options{})
+		doc, err := Run(ctx, []byte("```typescript\nconst foo = 'bar'\n```"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -119,7 +124,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("syntax highlighting json", func(t *testing.T) {
-		doc, err := Run([]byte("```json\n{\"foo\": 123}\n```"), Options{})
+		doc, err := Run(ctx, []byte("```json\n{\"foo\": 123}\n```"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -129,7 +134,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("heading consisting only of link uses link URL", func(t *testing.T) {
-		doc, err := Run([]byte(`## [A](B)`), Options{})
+		doc, err := Run(ctx, []byte(`## [A](B)`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -139,7 +144,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("HTML", func(t *testing.T) {
-		doc, err := Run([]byte(`<kbd>b</kbd>`), Options{Base: &url.URL{}})
+		doc, err := Run(ctx, []byte(`<kbd>b</kbd>`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -148,8 +153,18 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
+	t.Run("HTML div", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`<div class="foo">b</div>`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p><div class="foo">b</div></p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
 	t.Run("relative URL in Markdown links and images", func(t *testing.T) {
-		doc, err := Run([]byte("[a](b/c) ![a](b/c)"), Options{Base: &url.URL{Path: "/d/"}})
+		doc, err := Run(ctx, []byte("[a](b/c) ![a](b/c)"), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -159,7 +174,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("relative URL in HTML <a> and <img>", func(t *testing.T) {
-		doc, err := Run([]byte(`<a href="b/c">z</a><img src="b/c">`), Options{Base: &url.URL{Path: "/d/"}})
+		doc, err := Run(ctx, []byte(`<a href="b/c">z</a><img src="b/c">`), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,7 +184,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("anchor link", func(t *testing.T) {
-		doc, err := Run([]byte("[a](#b) <a href='#c'>d</a>"), Options{Base: &url.URL{Path: "/d/e"}})
+		doc, err := Run(ctx, []byte("[a](#b) <a href='#c'>d</a>"), Options{Base: &url.URL{Path: "/d/e"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -180,7 +195,7 @@ func TestRenderer(t *testing.T) {
 	})
 	t.Run("list", func(t *testing.T) {
 		t.Run("bare items", func(t *testing.T) {
-			doc, err := Run([]byte(`
+			doc, err := Run(ctx, []byte(`
 - a
 - b
 - c`), Options{})
@@ -199,7 +214,7 @@ func TestRenderer(t *testing.T) {
 		t.Run("nested items", func(t *testing.T) {
 			// Not sure why a single extra blank line causes all list items to be wrapped in <p>,
 			// but this is how GitHub works, too.
-			doc, err := Run([]byte(`
+			doc, err := Run(ctx, []byte(`
 - a
 
 - b
@@ -220,7 +235,7 @@ func TestRenderer(t *testing.T) {
 		})
 	})
 	t.Run("alerts", func(t *testing.T) {
-		doc, err := Run([]byte(`> NOTE: **a**
+		doc, err := Run(ctx, []byte(`> NOTE: **a**
 
 x
 
@@ -240,5 +255,91 @@ x
 		if string(doc.HTML) != want {
 			t.Errorf("got %q, want %q", string(doc.HTML), want)
 		}
+	})
+	t.Run("markdown-func", func(t *testing.T) {
+		t.Run("start-end tag", func(t *testing.T) {
+			doc, err := Run(ctx, []byte(`<div markdown-func=x x:a=b>z</div>
+`), Options{
+				Base: &url.URL{},
+				Funcs: FuncMap{
+					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
+						b, err := json.Marshal(args)
+						return info.Version + " " + string(b), err
+					},
+				},
+				FuncInfo: FuncInfo{Version: "v"},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := `v {"a":"b"}` + "\n"
+			if string(doc.HTML) != want {
+				t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+			}
+		})
+		t.Run("self-closing tag", func(t *testing.T) {
+			doc, err := Run(ctx, []byte(`<div markdown-func=x x:a=b />`), Options{
+				Base: &url.URL{},
+				Funcs: FuncMap{
+					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
+						b, err := json.Marshal(args)
+						return string(b), err
+					},
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := `<p>{"a":"b"}</p>` + "\n"
+			if string(doc.HTML) != want {
+				t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+			}
+		})
+		t.Run("never closed", func(t *testing.T) {
+			_, err := Run(ctx, []byte(`<div markdown-func=x x:a=b>z
+`), Options{
+				Base: &url.URL{},
+				Funcs: FuncMap{
+					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
+						return "", nil
+					},
+				},
+			})
+			if want := "tag for Markdown function \"x\" is never closed"; err == nil || err.Error() != want {
+				t.Fatalf("got error %v, want %q", err, want)
+			}
+		})
+		t.Run("error", func(t *testing.T) {
+			_, err := Run(ctx, []byte(`<div markdown-func=x />`), Options{
+				Base: &url.URL{},
+				Funcs: FuncMap{
+					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
+						return "", errors.New("z")
+					},
+				},
+			})
+			if want := "error in Markdown function \"x\": z"; err == nil || err.Error() != want {
+				t.Fatalf("got error %v, want %q", err, want)
+			}
+		})
+		t.Run("panic", func(t *testing.T) {
+			_, err := Run(ctx, []byte(`<div markdown-func=x />`), Options{
+				Base: &url.URL{},
+				Funcs: FuncMap{
+					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
+						panic("z")
+					},
+				},
+			})
+			if want := "error in Markdown function \"x\": z"; err == nil || err.Error() != want {
+				t.Fatalf("got error %v, want %q", err, want)
+			}
+		})
+		t.Run("nonexistent", func(t *testing.T) {
+			_, err := Run(ctx, []byte(`<div markdown-func=x>b</div>`), Options{Base: &url.URL{}})
+			if want := "Markdown function \"x\" is not defined"; err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("got error %v, want %q", err, want)
+			}
+		})
 	})
 }

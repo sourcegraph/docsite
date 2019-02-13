@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -37,6 +38,23 @@ type Options struct {
 	// ContentFilePathToLinkPath converts references to file paths of other content files to the URL
 	// path to use in links. For example, ContentFilePathToLinkPath("a/index.md") == "a".
 	ContentFilePathToLinkPath func(string) string
+
+	// Funcs are custom functions that can be invoked within Markdown documents with
+	// <markdownfuncjfunction-name arg="val" />.
+	Funcs FuncMap
+
+	// FuncInfo contains information passed to Markdown functions about the current execution
+	// context.
+	FuncInfo FuncInfo
+}
+
+// FuncMap contains named functions that can be invoked within Markdown documents (see
+// (Options).Funcs).
+type FuncMap map[string]func(context.Context, FuncInfo, map[string]string) (string, error)
+
+// FuncInfo contains information passed to Markdown functions about the current execution context.
+type FuncInfo struct {
+	Version string // the version of the content containing the page to render
 }
 
 // NewParser creates a new Markdown parser (the same one used by Run).
@@ -61,7 +79,7 @@ func NewBfRenderer() blackfriday.Renderer {
 
 // Run parses and HTML-renders a Markdown document (with optional metadata in the Markdown "front
 // matter").
-func Run(input []byte, opt Options) (*Document, error) {
+func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
 	meta, markdown, err := parseMetadata(input)
 	if err != nil {
 		return nil, err
@@ -76,7 +94,7 @@ func Run(input []byte, opt Options) (*Document, error) {
 	}
 	var buf bytes.Buffer
 	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		return renderer.RenderNode(&buf, node, entering)
+		return renderer.RenderNode(ctx, &buf, node, entering)
 	})
 
 	doc := Document{
@@ -89,17 +107,23 @@ func Run(input []byte, opt Options) (*Document, error) {
 	} else {
 		doc.Title = getTitle(ast)
 	}
-	return &doc, nil
+
+	if len(renderer.errors) > 0 {
+		err = renderer.errors[0]
+	}
+	return &doc, err
 }
 
 type renderer struct {
 	Options
 	blackfriday.Renderer
 
+	errors []error
+
 	headingIDs map[string]int // for generating unique heading IDs
 }
 
-func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
 	case blackfriday.Heading:
 		if entering {
@@ -153,6 +177,16 @@ func (r *renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 				node.Literal = v
 			}
 		}
+		// Evaluate Markdown funcs (<div markdown-func=name ...> nodes), using a heuristic to
+		// skip blocks that don't contain any invocations.
+		if entering {
+			if v, err := evalMarkdownFuncs(ctx, node.Literal, r.Options); err == nil {
+				node.Literal = v
+			} else {
+				r.errors = append(r.errors, err)
+			}
+		}
+
 	case blackfriday.BlockQuote:
 		parseAside := func(literal []byte) string {
 			switch {

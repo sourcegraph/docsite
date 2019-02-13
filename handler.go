@@ -86,7 +86,7 @@ func (s *Site) Handler() http.Handler {
 			filePath, fileData, err := resolveAndReadAll(content, r.URL.Path)
 			if err == nil {
 				// Content page found.
-				data.Content, err = s.newContentPage(filePath, fileData, contentVersion)
+				data.Content, err = s.newContentPage(r.Context(), filePath, fileData, contentVersion)
 			}
 			if err != nil {
 				// Content page not found.
