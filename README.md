@@ -3,8 +3,8 @@
 A documentation site generator that fits [Sourcegraph](https://sourcegraph.com)'s needs:
 
 - Markdown source files that are browseable on the file system and readable as plain text (without custom directives or complex front matter or configuration)
-- Served by an HTTP server, not generated as static HTML files, to eliminate the need for external static site host configuration
-- Usable by Sourcegraph itself as a library, to self-host docs for the current product version
+- Served by an HTTP server, not generated as static HTML files, to eliminate the need for external static site host configuration (which we found to be error-prone)
+- Usable within Sourcegraph to self-host docs for the current product version (with the same rendering and structure)
 
 ## Usage
 
