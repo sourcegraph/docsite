@@ -240,6 +240,18 @@ func zipFileSystemAtURL(url, dir string) (http.FileSystem, error) {
 	}
 
 	// Keep only the files actually needed, to reduce memory usage.
+	m, err := mapFromZipArchive(z, dir)
+	if err != nil {
+		return nil, err
+	}
+	body = nil
+	z = nil
+
+	return httpfs.New(mapfs.New(m)), nil
+}
+
+// mapFromZipArchive adds the contents of all files in the Zip archive (in dir) to the map.
+func mapFromZipArchive(z *zip.Reader, dir string) (map[string]string, error) {
 	m := map[string]string{}
 	for _, fh := range z.File {
 		if strings.HasPrefix(fh.Name, dir) && !strings.HasSuffix(fh.Name, "/") {
@@ -256,8 +268,5 @@ func zipFileSystemAtURL(url, dir string) (http.FileSystem, error) {
 			m[name] = string(data)
 		}
 	}
-	body = nil
-	z = nil
-
-	return httpfs.New(mapfs.New(m)), nil
+	return m, nil
 }
