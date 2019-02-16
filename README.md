@@ -43,7 +43,7 @@ The `docsite` tool requires site data to be available in any of the following wa
 - A `docsite.json` file (or other file specified in the `-config` flag's search paths), as in the following example:
    ```json
    {
-   	 "content": "../sourcegraph/doc",
+     "content": "../sourcegraph/doc",
      "baseURLPath": "/",
      "templates": "templates",
      "assets": "assets",
