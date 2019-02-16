@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -252,19 +253,45 @@ func zipFileSystemAtURL(url, dir string) (http.FileSystem, error) {
 
 // mapFromZipArchive adds the contents of all files in the Zip archive (in dir) to the map.
 func mapFromZipArchive(z *zip.Reader, dir string) (map[string]string, error) {
+	readFileHeader := func(zf *zip.File) ([]byte, error) {
+		f, err := zf.Open()
+		if err != nil {
+			return nil, errors.WithMessagef(err, "open %q", zf.Name)
+		}
+		data, err := ioutil.ReadAll(f)
+		f.Close()
+		if err != nil {
+			return nil, errors.WithMessagef(err, "read %q", zf.Name)
+		}
+		return data, nil
+	}
+	readFile := func(path string) ([]byte, error) {
+		for _, f := range z.File {
+			if f.Name == path {
+				return readFileHeader(f)
+			}
+		}
+		return nil, &os.PathError{Op: "readFile (in zip archive)", Path: path, Err: os.ErrNotExist}
+	}
+
 	m := map[string]string{}
-	for _, fh := range z.File {
-		if strings.HasPrefix(fh.Name, dir) && !strings.HasSuffix(fh.Name, "/") {
-			f, err := fh.Open()
+	for _, f := range z.File {
+		if strings.HasPrefix(f.Name, dir) && !strings.HasSuffix(f.Name, "/") {
+			data, err := readFileHeader(f)
 			if err != nil {
-				return nil, errors.WithMessage(err, fmt.Sprintf("open %q", fh.Name))
+				return nil, err
 			}
-			data, err := ioutil.ReadAll(f)
-			f.Close()
-			if err != nil {
-				return nil, errors.WithMessage(err, fmt.Sprintf("read %q", fh.Name))
+
+			// Dereference symlinks.
+			if f.Mode()&os.ModeSymlink != 0 {
+				targetPath := path.Join(path.Dir(f.Name), string(data))
+				data, err = readFile(targetPath)
+				if err != nil {
+					return nil, errors.WithMessagef(err, "dereferencing symlink at %q", f.Name)
+				}
 			}
-			name := strings.TrimPrefix(fh.Name, dir)
+
+			name := strings.TrimPrefix(f.Name, dir)
 			m[name] = string(data)
 		}
 	}
