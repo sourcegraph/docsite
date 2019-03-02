@@ -16,7 +16,7 @@ docsite -h
 - `docsite check`: check for common problems (such as broken links)
 - `docsite serve`: serve the site over HTTP
 
-To use docsite for docs.sourcegraph.com, see the [docs.sourcegraph.com README](https://github.com/sourcegraph/docs.sourcegraph.com/blob/master/README.md).
+To use docsite for docs.sourcegraph.com, see "[Documentation site](https://docs.sourcegraph.com/dev/documentation/site)" in the Sourcegraph documentation.
 
 ## Site data
 
