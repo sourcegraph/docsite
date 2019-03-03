@@ -17,22 +17,30 @@ func TestCheck(t *testing.T) {
 	}{
 		"valid links": {
 			pages: map[string]string{
-				"a.md":       "[a](a.md) [b](b/index.md)",
-				"b/index.md": "[a](../a.md) [b](index.md)",
+				"index.md":   "[a](index.md) [b](b/index.md)",
+				"b/index.md": "[a](../index.md) [b](index.md)",
 			},
 			wantProblems: nil,
 		},
 		"non-relative link path": {
-			pages:        map[string]string{"a.md": "[a](/a.md)"},
-			wantProblems: []string{"a.md: must use relative, not absolute, link to /a.md"},
+			pages:        map[string]string{"index.md": "[a](/index.md)"},
+			wantProblems: []string{"index.md: must use relative, not absolute, link to /index.md"},
 		},
 		"broken link": {
-			pages:        map[string]string{"a.md": "[b](b.md)"},
-			wantProblems: []string{"a.md: broken link to /b"},
+			pages:        map[string]string{"index.md": "[x](x.md)"},
+			wantProblems: []string{"index.md: broken link to /x"},
 		},
 		"link to equivalent path not .md file": {
-			pages:        map[string]string{"a.md": "[a](a)"},
-			wantProblems: []string{"a.md: must link to .md file, not a"},
+			pages:        map[string]string{"index.md": "[a](a) [a](a.md)", "a.md": ""},
+			wantProblems: []string{"index.md: must link to .md file, not a"},
+		},
+		"disconnected page": {
+			pages:        map[string]string{"x.md": "[x](x.md)"},
+			wantProblems: []string{"x.md: disconnected page (no inlinks from other pages)"},
+		},
+		"ignore disconnected page check": {
+			pages:        map[string]string{"x.md": "---\nignoreDisconnectedPageCheck: true\n---\n\n[x](x.md)"},
+			wantProblems: nil,
 		},
 	}
 	for name, test := range tests {

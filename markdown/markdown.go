@@ -234,7 +234,7 @@ func getTitle(node *blackfriday.Node) string {
 	if node.Type == blackfriday.Document {
 		node = node.FirstChild
 	}
-	if node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
+	if node != nil && node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
 		return renderText(node)
 	}
 	return ""
