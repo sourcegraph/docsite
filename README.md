@@ -18,6 +18,26 @@ docsite -h
 
 To use docsite for docs.sourcegraph.com, see the [docs.sourcegraph.com README](https://github.com/sourcegraph/docs.sourcegraph.com/blob/master/README.md).
 
+## Checks
+
+The `docsite check` command runs various checks on your documentation site to find problems:
+
+- invalid links
+- broken links
+- disconnected pages (with no inlinks from other pages)
+
+If any problems are found, it exits with a non-zero status code.
+
+To ignore the disconnected page check for a page, add YAML `ignoreDisconnectedPageCheck: true` to the top matter in the beginning of the `.md` file. For example:
+
+```
+---
+ignoreDisconnectedPageCheck: true
+---
+
+# My page title
+```
+
 ## Site data
 
 The site data describes the location of its templates, assets, and content. It is a JSON object with the following properties.

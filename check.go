@@ -21,20 +21,51 @@ func (s *Site) Check(ctx context.Context, contentVersion string) (problems []str
 	if err != nil {
 		return nil, err
 	}
-	for _, page := range pages {
-		problemPrefix := fmt.Sprintf("%s: ", page.FilePath)
-		pageProblems, pageErr := s.checkContentPage(page)
-		if pageErr != nil {
-			problems = append(problems, problemPrefix+pageErr.Error())
+
+	problemPrefix := func(page *ContentPage) string {
+		return fmt.Sprintf("%s: ", page.FilePath)
+	}
+
+	// Render and parse the pages.
+	pageData := make([]*contentPageCheckData, len(pages))
+	for i, page := range pages {
+		data, err := s.RenderContentPage(&PageData{Content: page})
+		if err != nil {
+			problems = append(problems, problemPrefix(page)+err.Error())
+			continue
 		}
-		for _, p := range pageProblems {
-			problems = append(problems, problemPrefix+p)
+		doc, err := html.Parse(bytes.NewReader(data))
+		if err != nil {
+			problems = append(problems, problemPrefix(page)+err.Error())
+			continue
+		}
+		pageData[i] = &contentPageCheckData{
+			ContentPage: page,
+			doc:         doc,
 		}
 	}
+
+	// Find per-page problems.
+	for _, page := range pageData {
+		pageProblems := s.checkContentPage(page)
+		for _, p := range pageProblems {
+			problems = append(problems, problemPrefix(page.ContentPage)+p)
+		}
+	}
+
+	// Find site-wide problems.
+	problems = append(problems, s.checkSite(pageData)...)
+
 	return problems, nil
 }
 
-func (s *Site) checkContentPage(page *ContentPage) (problems []string, err error) {
+type contentPageCheckData struct {
+	*ContentPage
+	doc *html.Node
+}
+
+func (s *Site) checkContentPage(page *contentPageCheckData) (problems []string) {
+	// Find invalid links.
 	ast := markdown.NewParser(markdown.NewBfRenderer()).Parse(page.Data)
 	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 		if entering {
@@ -61,14 +92,7 @@ func (s *Site) checkContentPage(page *ContentPage) (problems []string, err error
 		return blackfriday.GoToNext
 	})
 
-	data, err := s.RenderContentPage(&PageData{Content: page})
-	if err != nil {
-		return nil, err
-	}
-	doc, err := html.Parse(bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
+	// Find broken links.
 	handler := s.Handler()
 	walkOpt := walkHTMLDocumentOptions{
 		url: func(urlStr string) {
@@ -88,9 +112,36 @@ func (s *Site) checkContentPage(page *ContentPage) (problems []string, err error
 			}
 		},
 	}
-	walkHTMLDocument(doc, walkOpt)
+	walkHTMLDocument(page.doc, walkOpt)
 
-	return problems, nil
+	return problems
+}
+
+func (s *Site) checkSite(pages []*contentPageCheckData) (problems []string) {
+	inlinks := map[string]struct{}{}
+	for _, page := range pages {
+		walkHTMLDocument(page.doc, walkHTMLDocumentOptions{
+			url: func(urlStr string) {
+				u, err := url.Parse(urlStr)
+				if err != nil {
+					return // invalid URL error will be reported in per-page check
+				}
+				pagePath := strings.TrimPrefix(u.Path, s.Base.Path)
+				if pagePath == page.Path {
+					return // ignore self links for the sake of disconnected page detection
+				}
+				inlinks[pagePath] = struct{}{}
+			},
+		})
+	}
+
+	for _, page := range pages {
+		if _, hasInlinks := inlinks[page.Path]; !hasInlinks && page.FilePath != "index.md" && !page.Doc.Meta.IgnoreDisconnectedPageCheck {
+			problems = append(problems, fmt.Sprintf("%s: disconnected page (no inlinks from other pages)", page.FilePath))
+		}
+	}
+
+	return problems
 }
 
 type walkHTMLDocumentOptions struct {
