@@ -20,9 +20,6 @@ type ContentPage struct {
 }
 
 func contentFilePathToPath(filePath string) string {
-	if strings.HasPrefix(filePath, "/") {
-		panic("unexpected leading / in filePath: " + filePath)
-	}
 	path := strings.TrimSuffix(filePath, ".md")
 	if path == "index" {
 		return ""
