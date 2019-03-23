@@ -47,6 +47,7 @@ The site data describes the location of its templates, assets, and content. It i
 - `templates`: a VFS URL for the [Go-style HTML templates](https://golang.org/pkg/html/template/) used to render site pages.
 - `assets`: a VFS URL for the static assets referred to in the HTML templates (such as CSS stylesheets).
 - `assetsBaseURLPath`: the URL path where the assets are available (such as `/assets/`).
+- `allowRevisions`: a regular expression specifying the allowed revisions (optional)
 - `check` (optional): an object containing a single property `ignoreURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) of URLs to ignore when checking for broken URLs with `docsite check`.
 
 The possible values for VFS URLs are:
@@ -55,6 +56,8 @@ The possible values for VFS URLs are:
 - An **absolute URL to a Zip archive** (with `http` or `https` scheme). The URL can contain a fragment (such as `#mydir/`) to refer to a specific directory in the archive.
 
   If the URL fragment contains a path component `*` (such as `#*/templates/`), it matches the first top-level directory in the Zip file. (This is useful when using GitHub Zip archive URLs, such as `https://codeload.github.com/alice/myrepo/zip/myrev#*/templates/`. GitHub produces Zip archives with a top-level directory `$REPO-$REV`, such as `myrepo-myrev`, and using `#*/templates/` makes it easy to descend into that top-level directory without needing to duplicate the `myrev` in the URL fragment.)
+
+  If the URL contains the literal string `$VERSION`, it is replaced by the user's requested version from the URL (e.g., the URL path `/@foo/bar` means the version is `foo`). ⚠️ If you are using GitHub `codeload.github.com` archive URLs, be sure your URL contains `refs/heads/$VERSION` (as in `https://codeload.github.com/owner/repo/zip/refs/heads/$VERSION`), not just `$VERSION`. This prevents someone from forking your repository, pushing a commit to their fork with unauthorized content, and then crafting a URL on your documentation site that would cause users to view that unauthorized content (which may contain malicious scripts or misleading information).
 
 ### Specifying site data
 
@@ -75,7 +78,7 @@ The `docsite` tool requires site data to be available in any of the following wa
    ```
 - In the `DOCSITE_CONFIG` env var, using Zip archive URLs for `templates`, `assets`, and `content`, as in the following example:
    ```
-   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/docs.sourcegraph.com#*/templates/","assets":"https://codeload.github.com/sourcegraph/docs.sourcegraph.com/zip/docs.sourcegraph.com#*/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
+   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
    ```
 
 ## Development
