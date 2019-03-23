@@ -170,7 +170,11 @@ const fileSystemCacheTTL = 5 * time.Minute
 func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version string) (http.FileSystem, error) {
 	// HACK(sqs): this works for codeload.github.com
 	if version == "" {
-		version = "HEAD"
+		// HACK: Use master instead of HEAD even though master is technically incorrect in the
+		// general case. This is because we require that $VERSION be interpolated into
+		// refs/heads/$VERSION not just $VERSION (to avoid the security problem described below),
+		// and refs/heads/HEAD doesn't work in general.
+		version = "master"
 	}
 	if strings.Contains(version, "..") || strings.Contains(version, "?") || strings.Contains(version, "#") {
 		return nil, fmt.Errorf("invalid version %q", version)
@@ -191,7 +195,11 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 		return e.fs, nil
 	}
 
-	urlStr := strings.Replace(fs.url, "$VERSION", version, -1)
+	urlStr := fs.url
+	if strings.Contains(urlStr, "$VERSION") && strings.Contains(urlStr, "github") && !strings.Contains(urlStr, "refs/heads/$VERSION") {
+		return nil, fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", urlStr)
+	}
+	urlStr = strings.Replace(fs.url, "$VERSION", version, -1)
 	vfs, err := zipFileSystemFromURLWithDirFragment(urlStr)
 	if err != nil {
 		return nil, err
