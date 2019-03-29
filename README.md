@@ -78,7 +78,7 @@ The `docsite` tool requires site data to be available in any of the following wa
    ```
 - In the `DOCSITE_CONFIG` env var, using Zip archive URLs for `templates`, `assets`, and `content`, as in the following example:
    ```
-   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
+   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/doc/_resources/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/doc/_resources/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
    ```
 
 ## Development
