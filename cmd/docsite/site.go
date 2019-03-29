@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/pkg/errors"
 	"github.com/sourcegraph/docsite"
@@ -200,6 +201,14 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 		return nil, fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", urlStr)
 	}
 	urlStr = strings.Replace(fs.url, "$VERSION", version, -1)
+
+	// HACK: Workaround for https://github.com/sourcegraph/sourcegraph/issues/3030. This assumes
+	// that tags all begin with "vN" where N is some number.
+	if len(version) >= 2 && version[0] == 'v' && unicode.IsDigit(rune(version[1])) {
+		urlStr = strings.Replace(urlStr, "refs/heads/", "refs/tags/", 1)
+		log.Println("REPL TAG")
+	}
+
 	vfs, err := zipFileSystemFromURLWithDirFragment(urlStr)
 	if err != nil {
 		return nil, err
