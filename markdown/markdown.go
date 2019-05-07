@@ -10,7 +10,7 @@ import (
 	"github.com/Depado/bfchroma"
 	"github.com/alecthomas/chroma/styles"
 	"github.com/shurcooL/sanitized_anchor_name"
-	blackfriday "gopkg.in/russross/blackfriday.v2"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 // Document is a parsed and HTML-rendered Markdown document.
@@ -77,9 +77,38 @@ func NewBfRenderer() blackfriday.Renderer {
 	)
 }
 
+// escapePipesInBackticks works around https://github.com/russross/blackfriday/issues/207,
+// substituting unicode character U+2980 (triple vertical bar) for pipe symbols "|"
+// occurring within backtick-delimited code blocks.
+func escapePipesInBackticks(b []byte) []byte {
+	in := false
+	b2 := make([]byte, len(b))
+	for i, c := range b {
+		b2[i] = b[i]
+		switch c {
+		case '`':
+			in = !in
+		case '|':
+			if in {
+				b2[i] = 0
+			}
+		case '\n':
+			in = false
+		}
+	}
+	return bytes.Replace(b2, []byte{0}, []byte("⦀"), -1)
+}
+
+// unescapePipes reverses the escapes done in escapePipesInBackticks.
+func unescapePipes(b []byte) []byte {
+	return bytes.Replace(b, []byte("⦀"), []byte("|"), -1)
+}
+
 // Run parses and HTML-renders a Markdown document (with optional metadata in the Markdown "front
 // matter").
 func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
+	input = escapePipesInBackticks(input)
+
 	meta, markdown, err := parseMetadata(input)
 	if err != nil {
 		return nil, err
@@ -99,7 +128,7 @@ func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
 
 	doc := Document{
 		Meta: meta,
-		HTML: buf.Bytes(),
+		HTML: unescapePipes(buf.Bytes()),
 		Tree: newTree(ast),
 	}
 	if meta.Title != "" {
