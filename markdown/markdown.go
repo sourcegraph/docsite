@@ -7,10 +7,12 @@ import (
 	"io"
 	"net/url"
 
+	"github.com/pkg/errors"
+
 	"github.com/Depado/bfchroma"
 	"github.com/alecthomas/chroma/styles"
 	"github.com/shurcooL/sanitized_anchor_name"
-	blackfriday "gopkg.in/russross/blackfriday.v2"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 // Document is a parsed and HTML-rendered Markdown document.
@@ -77,9 +79,46 @@ func NewBfRenderer() blackfriday.Renderer {
 	)
 }
 
+var pipePlaceholder = []byte("\xe2\xa6\x80")
+
+// escapePipesInBackticks works around https://github.com/russross/blackfriday/issues/207,
+// substituting unicode character U+2980 (triple vertical bar) for pipe symbols "|"
+// occurring within backtick-delimited code blocks.
+func escapePipesInBackticks(b []byte) ([]byte, error) {
+	if bytes.Contains(b, pipePlaceholder) {
+		return nil, errors.Errorf("unhandled case: placeholder %s is already in the document", pipePlaceholder)
+	}
+	in := false
+	b2 := make([]byte, len(b))
+	for i, c := range b {
+		b2[i] = b[i]
+		switch c {
+		case '`':
+			in = !in
+		case '|':
+			if in {
+				b2[i] = 0
+			}
+		case '\n':
+			in = false
+		}
+	}
+	return bytes.Replace(b2, []byte{0}, pipePlaceholder, -1), nil
+}
+
+// unescapePipes reverses the escapes done in escapePipesInBackticks.
+func unescapePipes(b []byte) []byte {
+	return bytes.Replace(b, pipePlaceholder, []byte("|"), -1)
+}
+
 // Run parses and HTML-renders a Markdown document (with optional metadata in the Markdown "front
 // matter").
 func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
+	input, err := escapePipesInBackticks(input)
+	if err != nil {
+		return nil, errors.Wrap(err, "escaping pipes within backticks")
+	}
+
 	meta, markdown, err := parseMetadata(input)
 	if err != nil {
 		return nil, err
@@ -99,7 +138,7 @@ func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
 
 	doc := Document{
 		Meta: meta,
-		HTML: buf.Bytes(),
+		HTML: unescapePipes(buf.Bytes()),
 		Tree: newTree(ast),
 	}
 	if meta.Title != "" {

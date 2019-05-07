@@ -60,6 +60,31 @@ title: Metadata title
 
 func TestRenderer(t *testing.T) {
 	ctx := context.Background()
+	t.Run("table with `|`", func(t *testing.T) {
+		doc, err := Run(ctx, []byte("a  |  b\n---|---\nc  | `|`"), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<table>
+<thead>
+<tr>
+<th>a</th>
+<th>b</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>c</td>
+<td><code>|</code></td>
+</tr>
+</tbody>
+</table>
+`
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  '%s'\nwant: '%s'", string(doc.HTML), want)
+		}
+	})
 	t.Run("heading anchor link ignores special chars", func(t *testing.T) {
 		doc, err := Run(ctx, []byte(`## A ' B " C & D ? E`), Options{})
 		if err != nil {
