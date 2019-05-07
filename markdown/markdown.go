@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"net/url"
+
+	"github.com/pkg/errors"
 
 	"github.com/Depado/bfchroma"
 	"github.com/alecthomas/chroma/styles"
