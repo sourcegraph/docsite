@@ -82,28 +82,34 @@ func NewBfRenderer() blackfriday.Renderer {
 var pipePlaceholder = []byte("\xe2\xa6\x80")
 
 // escapePipesInBackticks works around https://github.com/russross/blackfriday/issues/207,
-// substituting unicode character U+2980 (triple vertical bar) for pipe symbols "|"
+// substituting unicode character U+2980 (triple vertical bar) for escaped pipe symbols "\|"
 // occurring within backtick-delimited code blocks.
 func escapePipesInBackticks(b []byte) ([]byte, error) {
 	if bytes.Contains(b, pipePlaceholder) {
 		return nil, errors.Errorf("unhandled case: placeholder %s is already in the document", pipePlaceholder)
 	}
 	in := false
-	b2 := make([]byte, len(b))
-	for i, c := range b {
-		b2[i] = b[i]
-		switch c {
-		case '`':
+	b2 := make([]byte, 0, len(b))
+	i := 0
+	for i < len(b) {
+		switch {
+		case b[i] == '`':
 			in = !in
-		case '|':
+			b2 = append(b2, b[i])
+		case b[i] == '\\' && i+1 < len(b) && b[i+1] == '|':
 			if in {
-				b2[i] = 0
+				b2 = append(b2, pipePlaceholder...)
 			}
-		case '\n':
+			i++
+		case b[i] == '\n':
 			in = false
+			b2 = append(b2, b[i])
+		default:
+			b2 = append(b2, b[i])
 		}
+		i++
 	}
-	return bytes.Replace(b2, []byte{0}, pipePlaceholder, -1), nil
+	return b2, nil
 }
 
 // unescapePipes reverses the escapes done in escapePipesInBackticks.
