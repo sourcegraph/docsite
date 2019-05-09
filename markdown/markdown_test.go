@@ -61,7 +61,7 @@ title: Metadata title
 func TestRenderer(t *testing.T) {
 	ctx := context.Background()
 	t.Run("table with `|`", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("a  |  b\n---|---\nc  | `|`"), Options{})
+		doc, err := Run(ctx, []byte("a  |  b\n---|---\nc  | `\\|`"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
