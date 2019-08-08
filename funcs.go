@@ -41,7 +41,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 				return "", err
 			}
 
-			var _, schema *jsonschema.Schema
+			var schema *jsonschema.Schema
 			if err := json.Unmarshal(data, &schema); err != nil {
 				return "", err
 			}
