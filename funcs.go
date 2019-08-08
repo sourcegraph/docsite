@@ -38,10 +38,12 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 				return "", err
 			}
 
-			var schema *jsonschema.Schema
+			var _, schema *jsonschema.Schema
 			if err := json.Unmarshal(data, &schema); err != nil {
 				return "", err
 			}
+
+			title := inputPath
 
 			// Support JSON references to emit documentation for a sub-definition.
 			if ref := args["ref"]; ref != "" {
@@ -61,6 +63,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 					return "", fmt.Errorf("unable to resolve JSON Schema reference %q", u.Fragment)
 				}
 				schema = (*schema.Definitions)[defName]
+				title += ref
 			}
 
 			out, err := jsonschemadoc.Generate(schema)
@@ -68,7 +71,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 				return "", err
 			}
 
-			doc, err := markdown.Run(ctx, []byte("<div class='pre-wrap'>\n```javascript\n"+string(out)+"\n```\n</div>"), markdown.Options{})
+			doc, err := markdown.Run(ctx, []byte("<h2 class=\"json-schema-doc-heading\"><code>"+title+"</code></h2><div class=\"json-schema-doc pre-wrap\">\n```javascript\n"+string(out)+"\n```\n</div>"), markdown.Options{})
 			if err != nil {
 				return "", err
 			}
