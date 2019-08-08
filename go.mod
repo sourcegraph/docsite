@@ -5,6 +5,8 @@ require (
 	github.com/alecthomas/chroma v0.6.2
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/mozillazg/go-slugify v0.2.0
+	github.com/mozillazg/go-unidecode v0.1.1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
 	github.com/sourcegraph/go-jsonschema v0.0.0-20190205151546-7939fa138765

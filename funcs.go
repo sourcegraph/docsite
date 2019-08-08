@@ -1,12 +1,15 @@
 package docsite
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
+	"text/template"
 
+	"github.com/mozillazg/go-slugify"
 	"github.com/pkg/errors"
 	"github.com/sourcegraph/docsite/markdown"
 	"github.com/sourcegraph/go-jsonschema/jsonschema"
@@ -43,6 +46,8 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 				return "", err
 			}
 
+			title := inputPath
+
 			// Support JSON references to emit documentation for a sub-definition.
 			if ref := args["ref"]; ref != "" {
 				if !strings.HasPrefix(ref, "#") {
@@ -61,6 +66,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 					return "", fmt.Errorf("unable to resolve JSON Schema reference %q", u.Fragment)
 				}
 				schema = (*schema.Definitions)[defName]
+				title += ref
 			}
 
 			out, err := jsonschemadoc.Generate(schema)
@@ -68,7 +74,32 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 				return "", err
 			}
 
-			doc, err := markdown.Run(ctx, []byte("<div class='pre-wrap'>\n```javascript\n"+string(out)+"\n```\n</div>"), markdown.Options{})
+			// Capture rendered output
+			outputTemplate := `
+<h2 id="{{.Slug}}" class="json-schema-doc-heading">
+	<a class="anchor" href="#{{.Slug}}" rel="nofollow" aria-hidden="true"></a>
+	<code>{{.Title}}</code>
+</h2>
+<div class="json-schema-doc pre-wrap">
+{{.Schema}}
+</div>`
+
+			tmpl := template.Must(template.New("template").Parse(outputTemplate))
+			vars := struct {
+				Title  string
+				Slug   string
+				Schema string
+			}{
+				title,
+				slugify.Slugify(title),
+				"```javascript\n" + out + "\n```",
+			}
+			var output bytes.Buffer
+			if err := tmpl.Execute(&output, vars); err != nil {
+				return "", err
+			}
+
+			doc, err := markdown.Run(ctx, []byte(output.String()), markdown.Options{})
 			if err != nil {
 				return "", err
 			}
