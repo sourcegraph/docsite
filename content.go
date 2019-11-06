@@ -44,6 +44,7 @@ func isDir(fs http.FileSystem, path string) bool {
 	if err != nil {
 		return false
 	}
+	defer f.Close()
 	fi, err := f.Stat()
 	return err == nil && fi.Mode().IsDir()
 }
