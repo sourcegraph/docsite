@@ -50,18 +50,26 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 // See ["Site data" in README.md](../../README.md#site-data) for documentation on this type's
 // fields.
 type docsiteConfig struct {
-	Content           string
-	BaseURLPath       string
-	Templates         string
-	Assets            string
-	AssetsBaseURLPath string
-	Check             struct {
+	Content               string
+	ContentExcludePattern string
+	BaseURLPath           string
+	Templates             string
+	Assets                string
+	AssetsBaseURLPath     string
+	Check                 struct {
 		IgnoreURLPattern string
 	}
 }
 
 func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
 	var site docsite.Site
+	if config.ContentExcludePattern != "" {
+		var err error
+		site.ContentExcludePattern, err = regexp.Compile(config.ContentExcludePattern)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if config.Check.IgnoreURLPattern != "" {
 		var err error
 		site.CheckIgnoreURLPattern, err = regexp.Compile(config.Check.IgnoreURLPattern)
