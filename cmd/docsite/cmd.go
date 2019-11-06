@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/pkg/errors"
 )
 
 // command is a subcommand handler and its flag set.
@@ -126,6 +128,15 @@ func (c commander) run(flagSet *flag.FlagSet, cmdName string, usage *template.Te
 				}
 				os.Exit(e.exitCode)
 			}
+
+			type stackTracer interface {
+				StackTrace() errors.StackTrace
+			}
+			if e, ok := errors.Cause(err).(stackTracer); ok {
+				log.Printf("stack trace for error:\n%+v", e)
+				log.Println()
+			}
+
 			log.Fatal(err)
 		}
 		os.Exit(0)

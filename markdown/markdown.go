@@ -119,8 +119,14 @@ func unescapePipes(b []byte) []byte {
 
 // Run parses and HTML-renders a Markdown document (with optional metadata in the Markdown "front
 // matter").
-func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
-	input, err := escapePipesInBackticks(input)
+func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.Errorf("panic while rendering Markdown: %s", e)
+		}
+	}()
+
+	input, err = escapePipesInBackticks(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "escaping pipes within backticks")
 	}
@@ -142,7 +148,7 @@ func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
 		return renderer.RenderNode(ctx, &buf, node, entering)
 	})
 
-	doc := Document{
+	doc = &Document{
 		Meta: meta,
 		HTML: unescapePipes(buf.Bytes()),
 		Tree: newTree(ast),
@@ -156,7 +162,7 @@ func Run(ctx context.Context, input []byte, opt Options) (*Document, error) {
 	if len(renderer.errors) > 0 {
 		err = renderer.errors[0]
 	}
-	return &doc, err
+	return doc, err
 }
 
 type renderer struct {
