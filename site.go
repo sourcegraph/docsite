@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"os"
 	pathpkg "path"
 	"regexp"
 	"strings"
@@ -25,6 +26,9 @@ type Site struct {
 	// Content is the versioned file system containing the Markdown files and assets (e.g., images)
 	// embedded in them.
 	Content VersionedFileSystem
+
+	// ContentExcludePattern is a regexp matching file paths to exclude in the content file system.
+	ContentExcludePattern *regexp.Regexp
 
 	// Base is the base URL (typically including only the path, such as "/" or "/help/") where the
 	// site is available.
@@ -88,8 +92,15 @@ func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*C
 		return nil, err
 	}
 
+	filter := func(path string) bool {
+		if !isContentPage(path) {
+			return false
+		}
+		return s.checkIsValidPath(path) == nil
+	}
+
 	var pages []*ContentPage
-	err = WalkFileSystem(content, isContentPage, func(path string) error {
+	err = WalkFileSystem(content, filter, func(path string) error {
 		data, err := ReadFile(content, path)
 		if err != nil {
 			return err
@@ -110,6 +121,9 @@ func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*C
 // If the resulting ContentPage differs from the path argument, the caller should (if possible)
 // communicate a redirect.
 func (s *Site) ResolveContentPage(ctx context.Context, contentVersion, path string) (*ContentPage, error) {
+	if err := s.checkIsValidPath(path); err != nil {
+		return nil, err
+	}
 	content, err := s.Content.OpenVersion(ctx, contentVersion)
 	if err != nil {
 		return nil, err
@@ -119,6 +133,13 @@ func (s *Site) ResolveContentPage(ctx context.Context, contentVersion, path stri
 		return nil, err
 	}
 	return s.newContentPage(ctx, filePath, data, contentVersion)
+}
+
+func (s *Site) checkIsValidPath(path string) error {
+	if s.ContentExcludePattern == nil || !s.ContentExcludePattern.MatchString(path) {
+		return nil
+	}
+	return &os.PathError{Op: "open", Path: path, Err: errors.New("path is excluded")}
 }
 
 // PageData is the data available to the HTML template used to render a page.
