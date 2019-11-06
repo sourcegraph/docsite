@@ -33,7 +33,7 @@ func WalkFileSystem(fs http.FileSystem, filterFn func(path string) bool, walkFn 
 		item := queue[0]
 		queue = queue[1:]
 		if item.fi.Mode().IsDir() {
-			if strings.HasPrefix(item.fi.Name(), ".") {
+			if strings.HasPrefix(item.fi.Name(), ".") && item.fi.Name() != "." {
 				continue // skip dot-dirs
 			}
 			dir, err := fs.Open(item.path)
