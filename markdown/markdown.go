@@ -243,13 +243,15 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 				return ""
 			}
 		}
-		if asideClass := parseAside(node.FirstChild.FirstChild.Literal); asideClass != "" {
-			if entering {
-				fmt.Fprintf(w, "<aside class=\"%s\">\n", asideClass)
-			} else {
-				fmt.Fprint(w, "</aside>\n")
+		if node.FirstChild.FirstChild != nil {
+			if asideClass := parseAside(node.FirstChild.FirstChild.Literal); asideClass != "" {
+				if entering {
+					fmt.Fprintf(w, "<aside class=\"%s\">\n", asideClass)
+				} else {
+					fmt.Fprint(w, "</aside>\n")
+				}
+				return blackfriday.GoToNext
 			}
-			return blackfriday.GoToNext
 		}
 	}
 	return r.Renderer.RenderNode(w, node, entering)
