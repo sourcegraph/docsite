@@ -259,6 +259,18 @@ func TestRenderer(t *testing.T) {
 			}
 		})
 	})
+	t.Run("empty blockquote", func(t *testing.T) {
+		doc, err := Run(ctx, []byte("> `a`"), Options{Base: &url.URL{Path: "/d/"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<blockquote>
+<p><code>a</code></p>
+</blockquote>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("got %q, want %q", string(doc.HTML), want)
+		}
+	})
 	t.Run("alerts", func(t *testing.T) {
 		doc, err := Run(ctx, []byte(`> NOTE: **a**
 
