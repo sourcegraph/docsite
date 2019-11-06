@@ -18,6 +18,7 @@ func WalkFileSystem(fs http.FileSystem, filterFn func(path string) bool, walkFn 
 	if err != nil {
 		return errors.WithMessage(err, fmt.Sprintf("open walk root %s", path))
 	}
+	defer root.Close()
 	fi, err := root.Stat()
 	if err != nil {
 		return errors.WithMessage(err, fmt.Sprintf("stat walk root %s", path))
@@ -40,6 +41,7 @@ func WalkFileSystem(fs http.FileSystem, filterFn func(path string) bool, walkFn 
 				return errors.WithMessage(err, fmt.Sprintf("open %s", item.path))
 			}
 			entries, err := dir.Readdir(-1)
+			dir.Close()
 			if err != nil {
 				return errors.WithMessage(err, fmt.Sprintf("readdir %s", item.path))
 			}
