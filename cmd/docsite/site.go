@@ -120,7 +120,7 @@ func (fs nonVersionedFileSystem) OpenVersion(_ context.Context, version string) 
 	return fs.FileSystem, nil
 }
 
-// openDocsiteFromConfig reads the documentation site data from env vars that refer to repositories.
+// openDocsiteFromEnv reads the documentation site data from env vars that refer to repositories.
 func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	configData := os.Getenv("DOCSITE_CONFIG")
 	if configData == "" {
