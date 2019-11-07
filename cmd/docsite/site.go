@@ -214,7 +214,6 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 	// that tags all begin with "vN" where N is some number.
 	if len(version) >= 2 && version[0] == 'v' && unicode.IsDigit(rune(version[1])) {
 		urlStr = strings.Replace(urlStr, "refs/heads/", "refs/tags/", 1)
-		log.Println("REPL TAG")
 	}
 
 	vfs, err := zipFileSystemFromURLWithDirFragment(urlStr)
