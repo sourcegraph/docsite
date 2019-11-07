@@ -14,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -56,6 +57,7 @@ type docsiteConfig struct {
 	Templates             string
 	Assets                string
 	AssetsBaseURLPath     string
+	Redirects             map[string]string
 	Check                 struct {
 		IgnoreURLPattern string
 	}
@@ -83,7 +85,58 @@ func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
 	if config.AssetsBaseURLPath != "" {
 		site.AssetsBase = &url.URL{Path: config.AssetsBaseURLPath}
 	}
+
+	for fromPath, toURLStr := range config.Redirects {
+		if err := addSiteRedirect(&site, fromPath, toURLStr); err != nil {
+			return nil, err
+		}
+	}
+
 	return &site, nil
+}
+
+func addSiteRedirect(site *docsite.Site, fromPath, toURLStr string) error {
+	if !strings.HasPrefix(fromPath, "/") || path.Clean(fromPath) != fromPath {
+		return fmt.Errorf("invalid redirect from-path %q (must start with '/' and be clean)", fromPath)
+	}
+	toURL, err := url.Parse(toURLStr)
+	if err != nil {
+		return errors.WithMessage(err, "invalid redirect destination URL")
+	}
+	if site.Redirects == nil {
+		site.Redirects = map[string]*url.URL{}
+	}
+	site.Redirects[fromPath] = toURL
+	return nil
+}
+
+// addRedirectsFromAssets reads a file `_redirects` in the assets FS (if any) and adds redirects
+// from it into the site's redirects map.
+//
+// The format of each line is `PATH DESTINATION STATUSCODE` (e.g., `/my/old/page /my/new/page 308`).
+func addRedirectsFromAssets(site *docsite.Site) error {
+	raw, err := docsite.ReadFile(site.Assets, "redirects")
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	for _, line := range bytes.Split(raw, []byte("\n")) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 || line[0] == '#' {
+			continue
+		}
+		parts := strings.Fields(string(line))
+		if len(parts) != 3 {
+			return fmt.Errorf("invalid redirects line: %q", line)
+		}
+		fromPath, toURLStr, statusCode := parts[0], parts[1], parts[2]
+		if want := http.StatusPermanentRedirect; statusCode != strconv.Itoa(want) {
+			return fmt.Errorf("invalid redirect from path %q with HTTP status code %s (only HTTP %d %s is supported)", fromPath, statusCode, want, http.StatusText(want))
+		}
+		if err := addSiteRedirect(site, fromPath, toURLStr); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // openDocsiteFromConfig reads the documentation site data from a docsite.json file. All file system
@@ -108,6 +161,9 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 	site.Templates = httpDirOrNil(config.Templates)
 	site.Content = nonVersionedFileSystem{httpDirOrNil(config.Content)}
 	site.Assets = httpDirOrNil(config.Assets)
+	if err := addRedirectsFromAssets(site); err != nil {
+		return nil, nil, err
+	}
 	return site, &config, nil
 }
 
@@ -158,6 +214,9 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	site.Templates = templates
 	site.Content = content
 	site.Assets = assets
+	if err := addRedirectsFromAssets(site); err != nil {
+		return nil, nil, err
+	}
 
 	return site, &config, nil
 }

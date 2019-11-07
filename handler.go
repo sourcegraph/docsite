@@ -36,6 +36,17 @@ func (s *Site) Handler() http.Handler {
 			return
 		}
 
+		{
+			requestPathWithLeadingSlash := r.URL.Path
+			if !strings.HasPrefix(requestPathWithLeadingSlash, "/") {
+				requestPathWithLeadingSlash = "/" + requestPathWithLeadingSlash
+			}
+			if redirectTo, ok := s.Redirects[requestPathWithLeadingSlash]; ok {
+				http.Redirect(w, r, redirectTo.String(), http.StatusPermanentRedirect)
+				return
+			}
+		}
+
 		// Support requests for other versions of content.
 		var contentVersion string
 		if strings.HasPrefix(r.URL.Path, "@") {

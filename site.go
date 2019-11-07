@@ -46,6 +46,9 @@ type Site struct {
 	// assets are available.
 	AssetsBase *url.URL
 
+	// Redirects contains a mapping from URL path to redirect destination URL.
+	Redirects map[string]*url.URL
+
 	// CheckIgnoreURLPattern is a regexp matching URLs to ignore in the Check method.
 	CheckIgnoreURLPattern *regexp.Regexp
 }
