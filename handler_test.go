@@ -64,6 +64,9 @@ func TestSite_Handler(t *testing.T) {
 			"g.gif": string(gifData),
 		})),
 		AssetsBase: &url.URL{Path: "/assets/"},
+		Redirects: map[string]*url.URL{
+			"/redirect-from": &url.URL{Path: "/redirect-to"},
+		},
 	}
 	handler := site.Handler()
 
@@ -194,6 +197,16 @@ func TestSite_Handler(t *testing.T) {
 		checkResponseHTTPOK(t, rr)
 		if got, want := rr.Header().Get("Content-Type"), "image/gif"; got != want {
 			t.Errorf("got Content-Type %q, want %q", got, want)
+		}
+	})
+
+	t.Run("redirect", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/redirect-from", nil)
+		handler.ServeHTTP(rr, req)
+		checkResponseStatus(t, rr, http.StatusPermanentRedirect)
+		if got, want := rr.Header().Get("Location"), "/redirect-to"; got != want {
+			t.Errorf("got redirect Location %q, want %q", got, want)
 		}
 	})
 }

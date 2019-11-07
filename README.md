@@ -48,6 +48,7 @@ The site data describes the location of its templates, assets, and content. It i
 - `templates`: a VFS URL for the [Go-style HTML templates](https://golang.org/pkg/html/template/) used to render site pages.
 - `assets`: a VFS URL for the static assets referred to in the HTML templates (such as CSS stylesheets).
 - `assetsBaseURLPath`: the URL path where the assets are available (such as `/assets/`).
+- `redirects`: an object mapping URL paths (such as `/my/old/page`) to redirect destination URLs (such as `/my/new/page`).
 - `check` (optional): an object containing a single property `ignoreURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) of URLs to ignore when checking for broken URLs with `docsite check`.
 
 The possible values for VFS URLs are:
@@ -58,6 +59,22 @@ The possible values for VFS URLs are:
   If the URL fragment contains a path component `*` (such as `#*/templates/`), it matches the first top-level directory in the Zip file. (This is useful when using GitHub Zip archive URLs, such as `https://codeload.github.com/alice/myrepo/zip/myrev#*/templates/`. GitHub produces Zip archives with a top-level directory `$REPO-$REV`, such as `myrepo-myrev`, and using `#*/templates/` makes it easy to descend into that top-level directory without needing to duplicate the `myrev` in the URL fragment.)
 
   If the URL contains the literal string `$VERSION`, it is replaced by the user's requested version from the URL (e.g., the URL path `/@foo/bar` means the version is `foo`). ⚠️ If you are using GitHub `codeload.github.com` archive URLs, be sure your URL contains `refs/heads/$VERSION` (as in `https://codeload.github.com/owner/repo/zip/refs/heads/$VERSION`), not just `$VERSION`. This prevents someone from forking your repository, pushing a commit to their fork with unauthorized content, and then crafting a URL on your documentation site that would cause users to view that unauthorized content (which may contain malicious scripts or misleading information).
+
+### Redirects
+
+In addition to the `redirects` property in site data, you can also specify redirects in a text file named `redirects` at the top level of the `assets` VFS. The format is as follows:
+
+``` text
+FROM-PATH TO-URL STATUS-CODE
+```
+
+For example:
+
+``` text
+# Comments are allowed
+/my/old/page /my/new/page 308
+/another/page https://example.com/page 308
+```
 
 ### Specifying site data
 
