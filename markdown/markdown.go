@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html"
 	"io"
 	"net/url"
+	"regexp"
 
 	"github.com/pkg/errors"
 
@@ -63,7 +65,7 @@ type FuncInfo struct {
 func NewParser(renderer blackfriday.Renderer) *blackfriday.Markdown {
 	return blackfriday.New(
 		blackfriday.WithRenderer(renderer),
-		blackfriday.WithExtensions(blackfriday.CommonExtensions|blackfriday.AutoHeadingIDs),
+		blackfriday.WithExtensions(blackfriday.CommonExtensions),
 	)
 }
 
@@ -178,8 +180,11 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 	switch node.Type {
 	case blackfriday.Heading:
 		if entering {
-			// Make the heading ID based on the text contents, not the raw contents.
-			node.HeadingID = sanitized_anchor_name.Create(renderText(node))
+			// Make the heading ID based on the text contents, not the raw contents. (But keep the
+			// heading ID explicitly specified with `# foo {:#myid}`, if any.)
+			if hasExplicitHeadingID := node.HeadingID != ""; !hasExplicitHeadingID {
+				node.HeadingID = sanitized_anchor_name.Create(renderText(node))
+			}
 
 			// Ensure the heading ID is unique. The blackfriday package (in ensureUniqueHeadingID)
 			// also performs this step, but there is no way for us to see the final (unique) heading
@@ -199,7 +204,7 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 			if hasSingleChildOfType(node, blackfriday.Link) {
 				fmt.Fprintf(w, `<a name="%s" aria-hidden="true"></a>`, node.HeadingID)
 			} else {
-				fmt.Fprintf(w, `<a name="%s" class="anchor" href="#%s" rel="nofollow" aria-hidden="true"></a>`, node.HeadingID, node.HeadingID)
+				fmt.Fprintf(w, `<a name="%s" class="anchor" href="#%s" rel="nofollow" aria-hidden="true" title="#%s"></a>`, node.HeadingID, node.HeadingID, node.HeadingID)
 			}
 		}
 		return blackfriday.GoToNext
@@ -259,6 +264,17 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 				return blackfriday.GoToNext
 			}
 		}
+	case blackfriday.Text:
+		if entering {
+			if newNodes := rewriteAnchorDirectives(node); len(newNodes) > 0 {
+				for _, n := range newNodes {
+					if status := r.Renderer.RenderNode(w, n, entering); status != blackfriday.GoToNext {
+						return status
+					}
+				}
+				return blackfriday.GoToNext
+			}
+		}
 	}
 	return r.Renderer.RenderNode(w, node, entering)
 }
@@ -281,6 +297,42 @@ func (r *renderer) ensureUniqueHeadingID(id string) string {
 	}
 
 	return id
+}
+
+var anchorDirectivePattern = regexp.MustCompile(`\{#[\w.-]+\}`)
+
+// rewriteAnchorDirectives rewrites `{#foo}` directives in text to `<a id="foo"></a>` anchors.
+func rewriteAnchorDirectives(node *blackfriday.Node) []*blackfriday.Node {
+	matches := anchorDirectivePattern.FindAllIndex(node.Literal, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	out := make([]*blackfriday.Node, 0, 2*len(matches)+1)
+	appendTextNode := func(text []byte) {
+		n := blackfriday.NewNode(blackfriday.Text)
+		n.Literal = text
+		out = append(out, n)
+	}
+
+	i := 0
+	for _, match := range matches {
+		start, end := match[0], match[1]
+		if i != start {
+			appendTextNode(node.Literal[i:start])
+		}
+
+		n := blackfriday.NewNode(blackfriday.HTMLSpan)
+		escapedID := html.EscapeString(string(node.Literal[start+2 : end-1]))
+		n.Literal = []byte(fmt.Sprintf(`<span id="%s" class="anchor-inline"></span><a href="#%s" class="anchor-inline-link" title="#%s"></a>`, escapedID, escapedID, escapedID))
+		out = append(out, n)
+
+		i = end
+	}
+	if i != len(node.Literal) {
+		appendTextNode(node.Literal[i:len(node.Literal)])
+	}
+	return out
 }
 
 func getTitle(node *blackfriday.Node) string {

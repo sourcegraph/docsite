@@ -34,7 +34,7 @@ Hello world github/linguist#1 **cool**, and #1!`), Options{})
 		}
 		check(t, *doc, Document{
 			Title: "My title",
-			HTML: []byte(`<h1 id="my-title"><a name="my-title" class="anchor" href="#my-title" rel="nofollow" aria-hidden="true"></a>My title</h1>
+			HTML: []byte(`<h1 id="my-title"><a name="my-title" class="anchor" href="#my-title" rel="nofollow" aria-hidden="true" title="#my-title"></a>My title</h1>
 
 <p>Hello world github/linguist#1 <strong>cool</strong>, and #1!</p>
 `),
@@ -52,7 +52,7 @@ title: Metadata title
 		check(t, *doc, Document{
 			Meta:  Metadata{Title: "Metadata title"},
 			Title: "Metadata title",
-			HTML: []byte(`<h1 id="markdown-title"><a name="markdown-title" class="anchor" href="#markdown-title" rel="nofollow" aria-hidden="true"></a>Markdown title</h1>
+			HTML: []byte(`<h1 id="markdown-title"><a name="markdown-title" class="anchor" href="#markdown-title" rel="nofollow" aria-hidden="true" title="#markdown-title"></a>Markdown title</h1>
 `),
 		})
 	})
@@ -90,7 +90,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h2 id="a-b-c-d-e"><a name="a-b-c-d-e" class="anchor" href="#a-b-c-d-e" rel="nofollow" aria-hidden="true"></a>A &lsquo; B &ldquo; C &amp; D ? E</h2>` + "\n"
+		want := `<h2 id="a-b-c-d-e"><a name="a-b-c-d-e" class="anchor" href="#a-b-c-d-e" rel="nofollow" aria-hidden="true" title="#a-b-c-d-e"></a>A &lsquo; B &ldquo; C &amp; D ? E</h2>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -100,7 +100,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h2 id="a-c"><a name="a-c" class="anchor" href="#a-c" rel="nofollow" aria-hidden="true"></a><a href="B">A</a> C</h2>` + "\n"
+		want := `<h2 id="a-c"><a name="a-c" class="anchor" href="#a-c" rel="nofollow" aria-hidden="true" title="#a-c"></a><a href="B">A</a> C</h2>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -110,7 +110,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h1 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n\n" + `<h1 id="a-1"><a name="a-1" class="anchor" href="#a-1" rel="nofollow" aria-hidden="true"></a>A</h1>` + "\n"
+		want := `<h1 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true" title="#a"></a>A</h1>` + "\n\n" + `<h1 id="a-1"><a name="a-1" class="anchor" href="#a-1" rel="nofollow" aria-hidden="true" title="#a-1"></a>A</h1>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -127,6 +127,28 @@ func TestRenderer(t *testing.T) {
 			b, _ := json.MarshalIndent(wantTree, "", "  ")
 			t.Errorf("\ngot:\n%s\n\nwant:\n%s", a, b)
 		}
+	})
+	t.Run("explicit anchors", func(t *testing.T) {
+		t.Run("heading", func(t *testing.T) {
+			doc, err := Run(ctx, []byte(`# a {#b}`), Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := `<h1 id="b"><a name="b" class="anchor" href="#b" rel="nofollow" aria-hidden="true" title="#b"></a>a</h1>` + "\n"
+			if string(doc.HTML) != want {
+				t.Errorf("got %q, want %q", string(doc.HTML), want)
+			}
+		})
+		t.Run("inline", func(t *testing.T) {
+			doc, err := Run(ctx, []byte(`a {#b} c`), Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := `<p>a <span id="b" class="anchor-inline"></span><a href="#b" class="anchor-inline-link" title="#b"></a> c</p>` + "\n"
+			if string(doc.HTML) != want {
+				t.Errorf("got %q, want %q", string(doc.HTML), want)
+			}
+		})
 	})
 	t.Run("syntax highlighting go", func(t *testing.T) {
 		doc, err := Run(ctx, []byte("```go\nvar foo struct{}\n```"), Options{})
