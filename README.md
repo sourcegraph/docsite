@@ -48,7 +48,6 @@ The site data describes the location of its templates, assets, and content. It i
 - `templates`: a VFS URL for the [Go-style HTML templates](https://golang.org/pkg/html/template/) used to render site pages.
 - `assets`: a VFS URL for the static assets referred to in the HTML templates (such as CSS stylesheets).
 - `assetsBaseURLPath`: the URL path where the assets are available (such as `/assets/`).
-- `allowRevisions`: a regular expression specifying the allowed revisions (optional)
 - `check` (optional): an object containing a single property `ignoreURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) of URLs to ignore when checking for broken URLs with `docsite check`.
 
 The possible values for VFS URLs are:
