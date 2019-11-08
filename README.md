@@ -107,11 +107,4 @@ docker build -t sourcegraph/docsite . && \
 docker push sourcegraph/docsite
 ```
 
-> For internal Sourcegraph usage:
->   ``` shell
->   docker build -t sourcegraph/docsite . && \
->   docker tag sourcegraph/docsite us.gcr.io/sourcegraph-dev/docsite && \
->   docker push us.gcr.io/sourcegraph-dev/docsite
->   ```
->
-> Then bump the deployed version by making a change like https://github.com/sourcegraph/deploy-sourcegraph-dot-com/pull/769/files.
+For internal Sourcegraph usage, then bump the deployed version by making a change like https://github.com/sourcegraph/deploy-sourcegraph-dot-com/pull/769/files.
