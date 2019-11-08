@@ -27,8 +27,8 @@ func (s *Site) Check(ctx context.Context, contentVersion string) (problems []str
 	}
 
 	// Render and parse the pages.
-	pageData := make([]*contentPageCheckData, len(pages))
-	for i, page := range pages {
+	pageData := make([]*contentPageCheckData, 0, len(pages))
+	for _, page := range pages {
 		data, err := s.RenderContentPage(&PageData{Content: page})
 		if err != nil {
 			problems = append(problems, problemPrefix(page)+err.Error())
@@ -39,10 +39,10 @@ func (s *Site) Check(ctx context.Context, contentVersion string) (problems []str
 			problems = append(problems, problemPrefix(page)+err.Error())
 			continue
 		}
-		pageData[i] = &contentPageCheckData{
+		pageData = append(pageData, &contentPageCheckData{
 			ContentPage: page,
 			doc:         doc,
-		}
+		})
 	}
 
 	// Find per-page problems.
