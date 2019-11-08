@@ -68,22 +68,25 @@ func (s *Site) checkContentPage(page *contentPageCheckData) (problems []string) 
 	// Find invalid links.
 	ast := markdown.NewParser(markdown.NewBfRenderer()).Parse(page.Data)
 	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		if entering {
-			if node.Type == blackfriday.Link || node.Type == blackfriday.Image {
-				// Reject absolute paths because they will break when browsing the docs on
-				// GitHub/Sourcegraph in the repository, or if the root path ever changes.
-				if bytes.HasPrefix(node.LinkData.Destination, []byte("/")) {
-					problems = append(problems, fmt.Sprintf("must use relative, not absolute, link to %s", node.LinkData.Destination))
-				}
+		if entering && (node.Type == blackfriday.Link || node.Type == blackfriday.Image) {
+			u, err := url.Parse(string(node.LinkData.Destination))
+			if err != nil {
+				problems = append(problems, fmt.Sprintf("invalid URL %q", node.LinkData.Destination))
+				return blackfriday.GoToNext
+			}
+
+			isPathOnly := u.Scheme == "" && u.Host == ""
+
+			// Reject absolute paths because they will break when browsing the docs on
+			// GitHub/Sourcegraph in the repository, or if the root path ever changes.
+			if isPathOnly && strings.HasPrefix(u.Path, "/") {
+				problems = append(problems, fmt.Sprintf("must use relative, not absolute, link to %s", node.LinkData.Destination))
 			}
 
 			if node.Type == blackfriday.Link {
 				// Require that relative paths link to the actual .md file, so that browsing
 				// docs on the file system works.
-				u, err := url.Parse(string(node.LinkData.Destination))
-				if err != nil {
-					problems = append(problems, fmt.Sprintf("invalid URL %q", node.LinkData.Destination))
-				} else if !u.IsAbs() && u.Path != "" && !strings.HasSuffix(u.Path, ".md") {
+				if isPathOnly && u.Path != "" && !strings.HasSuffix(u.Path, ".md") {
 					problems = append(problems, fmt.Sprintf("must link to .md file, not %s", u.Path))
 				}
 			}
@@ -105,7 +108,11 @@ func (s *Site) checkContentPage(page *contentPageCheckData) (problems []string) 
 			}
 
 			rr := httptest.NewRecorder()
-			req, _ := http.NewRequest("HEAD", urlStr, nil)
+			req, err := http.NewRequest("HEAD", urlStr, nil)
+			if err != nil {
+				problems = append(problems, fmt.Sprintf("invalid request URI %q", urlStr))
+				return
+			}
 			handler.ServeHTTP(rr, req)
 			if rr.Code != http.StatusOK {
 				problems = append(problems, fmt.Sprintf("broken link to %s", urlStr))

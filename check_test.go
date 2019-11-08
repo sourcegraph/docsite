@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"golang.org/x/tools/godoc/vfs/httpfs"
@@ -25,6 +26,10 @@ func TestCheck(t *testing.T) {
 		"non-relative link path": {
 			pages:        map[string]string{"index.md": "[a](/index.md)"},
 			wantProblems: []string{"index.md: must use relative, not absolute, link to /index.md"},
+		},
+		"scheme-relative link": {
+			pages:        map[string]string{"index.md": "[a](//example.com/a)"},
+			wantProblems: nil,
 		},
 		"broken link": {
 			pages:        map[string]string{"index.md": "[x](x.md)"},
@@ -50,8 +55,9 @@ func TestCheck(t *testing.T) {
 				Content: versionedFileSystem{
 					"": httpfs.New(mapfs.New(test.pages)),
 				},
-				Templates: httpfs.New(mapfs.New(map[string]string{"doc.html": "{{markdown .Content}}"})),
-				Base:      &url.URL{Path: "/"},
+				Templates:             httpfs.New(mapfs.New(map[string]string{"doc.html": "{{markdown .Content}}"})),
+				Base:                  &url.URL{Path: "/"},
+				CheckIgnoreURLPattern: regexp.MustCompile(`^//`),
 			}
 			problems, err := site.Check(ctx, "")
 			if err != nil {
