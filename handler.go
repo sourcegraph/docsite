@@ -12,13 +12,27 @@ import (
 func (s *Site) Handler() http.Handler {
 	m := http.NewServeMux()
 
-	const longCache = "max-age=3600"
+	const (
+		cacheMaxAge0     = "max-age=0"
+		cacheMaxAgeShort = "max-age=60"
+		cacheMaxAgeLong  = "max-age=3600"
+	)
+	isNoCacheRequest := func(r *http.Request) bool {
+		return r.Header.Get("Cache-Control") == "no-cache"
+	}
+	setCacheControl := func(w http.ResponseWriter, r *http.Request) {
+		if isNoCacheRequest(r) {
+			w.Header().Set("Cache-Control", cacheMaxAge0)
+		} else {
+			w.Header().Set("Cache-Control", cacheMaxAgeLong)
+		}
+	}
 
 	// Serve assets using http.FileServer.
 	if s.AssetsBase != nil {
 		assetsFileServer := http.FileServer(s.Assets)
 		m.Handle(s.AssetsBase.Path, http.StripPrefix(s.AssetsBase.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Cache-Control", longCache)
+			setCacheControl(w, r)
 			assetsFileServer.ServeHTTP(w, r)
 		})))
 	}
@@ -66,7 +80,7 @@ func (s *Site) Handler() http.Handler {
 			// Serve non-Markdown content files (such as images) using http.FileServer.
 			content, err := s.Content.OpenVersion(r.Context(), contentVersion)
 			if err != nil {
-				w.Header().Set("Cache-Control", "max-age=0")
+				w.Header().Set("Cache-Control", cacheMaxAge0)
 				if os.IsNotExist(err) {
 					http.Error(w, "content version not found", http.StatusNotFound)
 				} else {
@@ -74,7 +88,7 @@ func (s *Site) Handler() http.Handler {
 				}
 				return
 			}
-			w.Header().Set("Cache-Control", longCache)
+			setCacheControl(w, r)
 			http.FileServer(content).ServeHTTP(w, r)
 			return
 		}
@@ -87,7 +101,7 @@ func (s *Site) Handler() http.Handler {
 		if err != nil {
 			// Version not found.
 			if !os.IsNotExist(err) {
-				w.Header().Set("Cache-Control", "max-age=0")
+				w.Header().Set("Cache-Control", cacheMaxAge0)
 				http.Error(w, "content version error: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -102,7 +116,7 @@ func (s *Site) Handler() http.Handler {
 			if err != nil {
 				// Content page not found.
 				if !os.IsNotExist(err) {
-					w.Header().Set("Cache-Control", "max-age=0")
+					w.Header().Set("Cache-Control", cacheMaxAge0)
 					http.Error(w, "content error: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
@@ -112,7 +126,7 @@ func (s *Site) Handler() http.Handler {
 
 		respData, err := s.RenderContentPage(&data)
 		if err != nil {
-			w.Header().Set("Cache-Control", "max-age=0")
+			w.Header().Set("Cache-Control", cacheMaxAge0)
 			http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -120,9 +134,13 @@ func (s *Site) Handler() http.Handler {
 		// Don't cache errors; do cache on success.
 		if data.Content == nil {
 			w.WriteHeader(http.StatusNotFound)
-			w.Header().Set("Cache-Control", "max-age=0")
+			w.Header().Set("Cache-Control", cacheMaxAge0)
 		} else {
-			w.Header().Set("Cache-Control", "max-age=60")
+			if isNoCacheRequest(r) {
+				w.Header().Set("Cache-Control", cacheMaxAge0)
+			} else {
+				w.Header().Set("Cache-Control", cacheMaxAgeShort)
+			}
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
