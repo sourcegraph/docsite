@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/sourcegraph/docsite/markdown"
 	"golang.org/x/net/html"
@@ -27,34 +28,50 @@ func (s *Site) Check(ctx context.Context, contentVersion string) (problems []str
 	}
 
 	// Render and parse the pages.
-	pageData := make([]*contentPageCheckData, 0, len(pages))
+	var (
+		wg sync.WaitGroup
+		mu sync.Mutex
+	)
+	addProblem := func(problem string) {
+		mu.Lock()
+		problems = append(problems, problem)
+		mu.Unlock()
+	}
+	allPageDatas := make([]*contentPageCheckData, 0, len(pages))
 	for _, page := range pages {
-		data, err := s.RenderContentPage(&PageData{Content: page})
-		if err != nil {
-			problems = append(problems, problemPrefix(page)+err.Error())
-			continue
-		}
-		doc, err := html.Parse(bytes.NewReader(data))
-		if err != nil {
-			problems = append(problems, problemPrefix(page)+err.Error())
-			continue
-		}
-		pageData = append(pageData, &contentPageCheckData{
-			ContentPage: page,
-			doc:         doc,
-		})
-	}
+		wg.Add(1)
+		go func(page *ContentPage) {
+			defer wg.Done()
+			data, err := s.RenderContentPage(&PageData{Content: page})
+			if err != nil {
+				addProblem(problemPrefix(page) + err.Error())
+				return
+			}
+			doc, err := html.Parse(bytes.NewReader(data))
+			if err != nil {
+				addProblem(problemPrefix(page) + err.Error())
+				return
+			}
+			pageData := &contentPageCheckData{
+				ContentPage: page,
+				doc:         doc,
+			}
 
-	// Find per-page problems.
-	for _, page := range pageData {
-		pageProblems := s.checkContentPage(page)
-		for _, p := range pageProblems {
-			problems = append(problems, problemPrefix(page.ContentPage)+p)
-		}
+			mu.Lock()
+			allPageDatas = append(allPageDatas, pageData)
+			mu.Unlock()
+
+			// Find per-page problems.
+			pageProblems := s.checkContentPage(pageData)
+			for _, p := range pageProblems {
+				addProblem(problemPrefix(pageData.ContentPage) + p)
+			}
+		}(page)
 	}
+	wg.Wait()
 
 	// Find site-wide problems.
-	problems = append(problems, s.checkSite(pageData)...)
+	problems = append(problems, s.checkSite(allPageDatas)...)
 
 	return problems, nil
 }

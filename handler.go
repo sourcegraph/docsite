@@ -124,11 +124,15 @@ func (s *Site) Handler() http.Handler {
 			}
 		}
 
-		respData, err := s.RenderContentPage(&data)
-		if err != nil {
-			w.Header().Set("Cache-Control", cacheMaxAge0)
-			http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
-			return
+		var respData []byte
+		if r.Method == "GET" {
+			var err error
+			respData, err = s.RenderContentPage(&data)
+			if err != nil {
+				w.Header().Set("Cache-Control", cacheMaxAge0)
+				http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		// Don't cache errors; do cache on success.
