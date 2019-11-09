@@ -20,11 +20,11 @@ func (s *Site) Handler() http.Handler {
 	isNoCacheRequest := func(r *http.Request) bool {
 		return r.Header.Get("Cache-Control") == "no-cache"
 	}
-	setCacheControl := func(w http.ResponseWriter, r *http.Request) {
+	setCacheControl := func(w http.ResponseWriter, r *http.Request, cacheControl string) {
 		if isNoCacheRequest(r) {
 			w.Header().Set("Cache-Control", cacheMaxAge0)
 		} else {
-			w.Header().Set("Cache-Control", cacheMaxAgeLong)
+			w.Header().Set("Cache-Control", cacheControl)
 		}
 	}
 
@@ -32,7 +32,7 @@ func (s *Site) Handler() http.Handler {
 	if s.AssetsBase != nil {
 		assetsFileServer := http.FileServer(s.Assets)
 		m.Handle(s.AssetsBase.Path, http.StripPrefix(s.AssetsBase.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			setCacheControl(w, r)
+			setCacheControl(w, r, cacheMaxAgeLong)
 			assetsFileServer.ServeHTTP(w, r)
 		})))
 	}
@@ -88,7 +88,7 @@ func (s *Site) Handler() http.Handler {
 				}
 				return
 			}
-			setCacheControl(w, r)
+			setCacheControl(w, r, cacheMaxAgeLong)
 			http.FileServer(content).ServeHTTP(w, r)
 			return
 		}
@@ -140,11 +140,7 @@ func (s *Site) Handler() http.Handler {
 			w.WriteHeader(http.StatusNotFound)
 			w.Header().Set("Cache-Control", cacheMaxAge0)
 		} else {
-			if isNoCacheRequest(r) {
-				w.Header().Set("Cache-Control", cacheMaxAge0)
-			} else {
-				w.Header().Set("Cache-Control", cacheMaxAgeShort)
-			}
+			setCacheControl(w, r, cacheMaxAgeShort)
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
