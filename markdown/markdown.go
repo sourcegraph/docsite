@@ -316,12 +316,12 @@ func getTitle(node *blackfriday.Node) string {
 func RenderText(node *blackfriday.Node) []byte {
 	var parts [][]byte
 	node.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		if node.Type == blackfriday.Text {
+		if node.Type == blackfriday.Text || node.Type == blackfriday.Code {
 			parts = append(parts, node.Literal)
 		}
 		return blackfriday.GoToNext
 	})
-	return bytes.Join(parts, nil)
+	return bytes.TrimSpace(bytes.Join(parts, []byte(" ")))
 }
 
 func hasSingleChildOfType(node *blackfriday.Node, typ blackfriday.NodeType) bool {

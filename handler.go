@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -37,13 +38,46 @@ func (s *Site) Handler() http.Handler {
 		})))
 	}
 
-	// Serve content.
 	var basePath string
 	if s.Base != nil {
 		basePath = s.Base.Path
 	} else {
 		basePath = "/"
 	}
+
+	// Serve search.
+	m.Handle(path.Join(basePath, "search"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" && r.Method != "HEAD" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		queryStr := r.URL.Query().Get("q")
+		contentVersion := r.URL.Query().Get("v")
+		result, err := s.Search(r.Context(), contentVersion, queryStr)
+		if err != nil {
+			w.Header().Set("Cache-Control", cacheMaxAge0)
+			http.Error(w, "search error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var respData []byte
+		if r.Method == "GET" {
+			respData, err = s.renderSearchPage(queryStr, result)
+			if err != nil {
+				w.Header().Set("Cache-Control", cacheMaxAge0)
+				http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		setCacheControl(w, r, cacheMaxAgeShort)
+		if r.Method == "GET" {
+			w.Write(respData)
+		}
+	}))
+
+	// Serve content.
 	m.Handle(basePath, http.StripPrefix(basePath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
 			w.WriteHeader(http.StatusMethodNotAllowed)

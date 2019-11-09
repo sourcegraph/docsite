@@ -13,6 +13,7 @@ import (
 const (
 	rootTemplateName     = "root"
 	documentTemplateName = "document"
+	searchTemplateName   = "search"
 )
 
 func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs template.FuncMap) (*template.Template, error) {
