@@ -13,7 +13,6 @@ import (
 
 	"github.com/Depado/bfchroma"
 	"github.com/alecthomas/chroma/styles"
-	"github.com/shurcooL/sanitized_anchor_name"
 	"gopkg.in/russross/blackfriday.v2"
 )
 
@@ -141,11 +140,11 @@ func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err err
 	bfRenderer := NewBfRenderer()
 	ast := NewParser(bfRenderer).Parse(markdown)
 	renderer := &renderer{
-		Options:    opt,
-		Renderer:   bfRenderer,
-		headingIDs: map[string]int{},
+		Options:  opt,
+		Renderer: bfRenderer,
 	}
 	var buf bytes.Buffer
+	SetHeadingIDs(ast)
 	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 		return renderer.RenderNode(ctx, &buf, node, entering)
 	})
@@ -172,28 +171,11 @@ type renderer struct {
 	blackfriday.Renderer
 
 	errors []error
-
-	headingIDs map[string]int // for generating unique heading IDs
 }
 
 func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
 	case blackfriday.Heading:
-		if entering {
-			// Make the heading ID based on the text contents, not the raw contents. (But keep the
-			// heading ID explicitly specified with `# foo {:#myid}`, if any.)
-			if hasExplicitHeadingID := node.HeadingID != ""; !hasExplicitHeadingID {
-				node.HeadingID = sanitized_anchor_name.Create(renderText(node))
-			}
-
-			// Ensure the heading ID is unique. The blackfriday package (in ensureUniqueHeadingID)
-			// also performs this step, but there is no way for us to see the final (unique) heading
-			// ID it generates. That means the "#" anchor link we generate, and the table of
-			// contents, would use the non-unique heading ID. Generating the heading ID ourselves
-			// fixes these issues.
-			node.HeadingID = r.ensureUniqueHeadingID(node.HeadingID)
-		}
-
 		// Add "#" anchor links to headers to make it easy for users to discover and copy links
 		// to sections of a document.
 		if status := r.Renderer.RenderNode(w, node, entering); status != blackfriday.GoToNext {
@@ -277,26 +259,6 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 		}
 	}
 	return r.Renderer.RenderNode(w, node, entering)
-}
-
-func (r *renderer) ensureUniqueHeadingID(id string) string {
-	// Copied from blackfriday.
-	for count, found := r.headingIDs[id]; found; count, found = r.headingIDs[id] {
-		tmp := fmt.Sprintf("%s-%d", id, count+1)
-
-		if _, tmpFound := r.headingIDs[tmp]; !tmpFound {
-			r.headingIDs[id] = count + 1
-			id = tmp
-		} else {
-			id = id + "-1"
-		}
-	}
-
-	if _, found := r.headingIDs[id]; !found {
-		r.headingIDs[id] = 0
-	}
-
-	return id
 }
 
 var anchorDirectivePattern = regexp.MustCompile(`\{#[\w.-]+\}`)

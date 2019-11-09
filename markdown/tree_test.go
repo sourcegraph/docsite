@@ -1,12 +1,9 @@
 package markdown
 
 import (
-	"bytes"
 	"encoding/json"
 	"reflect"
 	"testing"
-
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 func TestNewTree(t *testing.T) {
@@ -24,13 +21,7 @@ func TestNewTree(t *testing.T) {
 
 # 1b
 ## 2b`))
-
-	// Render tree because that is how the HeadingIDs get set.
-	var buf bytes.Buffer
-	renderer := &renderer{Renderer: bfRenderer, headingIDs: map[string]int{}}
-	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		return renderer.RenderNode(nil, &buf, node, entering)
-	})
+	SetHeadingIDs(ast)
 
 	tree := newTree(ast)
 	want := []*SectionNode{
