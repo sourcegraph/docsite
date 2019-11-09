@@ -159,15 +159,11 @@ type PageData struct {
 
 // RenderContentPage renders a content page using the template.
 func (s *Site) RenderContentPage(page *PageData) ([]byte, error) {
-	funcs := template.FuncMap{
-		"asset": func(path string) string {
-			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
-		},
+	tmpl, err := s.getTemplate(s.Templates, documentTemplateName, template.FuncMap{
 		"markdown": func(page ContentPage) template.HTML {
 			return template.HTML(page.Doc.HTML)
 		},
-	}
-	tmpl, err := parseTemplates(s.Templates, funcs)
+	})
 	if err != nil {
 		return nil, err
 	}

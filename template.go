@@ -4,26 +4,40 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path/filepath"
+	"net/url"
+	"os"
 
 	"github.com/pkg/errors"
 )
 
-func parseTemplates(templatesFS http.FileSystem, funcs template.FuncMap) (*template.Template, error) {
-	tmpl := template.New("root")
-	tmpl.Funcs(funcs)
+const (
+	rootTemplateName     = "root"
+	documentTemplateName = "document"
+)
 
-	// Read all template files (recursively).
-	isHTML := func(path string) bool { return filepath.Ext(path) == ".html" }
-	err := WalkFileSystem(templatesFS, isHTML, func(path string) error {
+func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs template.FuncMap) (*template.Template, error) {
+	tmpl := template.New(rootTemplateName)
+	tmpl.Funcs(template.FuncMap{
+		"asset": func(path string) string {
+			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
+		},
+	})
+	tmpl.Funcs(extraFuncs)
+
+	// Read root and named template files.
+	names := []string{rootTemplateName, name}
+	for _, name := range names {
+		path := "/" + name + ".html"
 		data, err := ReadFile(templatesFS, path)
+		if name == rootTemplateName && os.IsNotExist(err) {
+			continue
+		}
 		if err != nil {
-			return errors.WithMessage(err, fmt.Sprintf("read template %s", path))
+			return nil, errors.WithMessage(err, fmt.Sprintf("read template %s", path))
 		}
 		if _, err := tmpl.Parse(string(data)); err != nil {
-			return errors.WithMessage(err, fmt.Sprintf("parse template %s", path))
+			return nil, errors.WithMessage(err, fmt.Sprintf("parse template %s", path))
 		}
-		return nil
-	})
-	return tmpl, errors.WithMessage(err, "walking templates")
+	}
+	return tmpl, nil
 }

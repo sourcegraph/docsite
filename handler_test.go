@@ -49,8 +49,9 @@ func TestSite_Handler(t *testing.T) {
 		},
 		Base: &url.URL{Path: "/"},
 		Templates: httpfs.New(mapfs.New(map[string]string{
-			"template.html": `
-{{define "root" -}}
+			"root.html": `{{block "content" .}}empty{{end}}`,
+			"document.html": `
+{{define "content" -}}
 {{with .Content}}
 	{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
 	{{markdown .}}
