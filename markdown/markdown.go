@@ -302,12 +302,12 @@ func getTitle(node *blackfriday.Node) string {
 		node = node.FirstChild
 	}
 	if node != nil && node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
-		return renderText(node)
+		return string(RenderText(node))
 	}
 	return ""
 }
 
-func renderText(node *blackfriday.Node) string {
+func RenderText(node *blackfriday.Node) []byte {
 	var parts [][]byte
 	node.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 		if node.Type == blackfriday.Text {
@@ -315,7 +315,7 @@ func renderText(node *blackfriday.Node) string {
 		}
 		return blackfriday.GoToNext
 	})
-	return string(bytes.Join(parts, nil))
+	return bytes.Join(parts, nil)
 }
 
 func hasSingleChildOfType(node *blackfriday.Node, typ blackfriday.NodeType) bool {

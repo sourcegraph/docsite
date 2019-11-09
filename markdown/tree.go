@@ -31,7 +31,7 @@ func newTree(node *blackfriday.Node) []*SectionNode {
 				url = "#" + node.HeadingID
 			}
 
-			n := &SectionNode{Title: renderText(node), URL: url, Level: node.Level}
+			n := &SectionNode{Title: string(RenderText(node)), URL: url, Level: node.Level}
 			cur().Children = append(cur().Children, n)
 			stack = append(stack, n)
 		}
