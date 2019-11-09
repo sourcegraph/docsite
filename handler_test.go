@@ -60,6 +60,15 @@ func TestSite_Handler(t *testing.T) {
 	{{if .ContentPageNotFoundError}}content page not found{{end}}
 {{end}}
 {{- end}}`,
+			"search.html": `
+{{define "content" -}}
+query "{{.Query}}":
+{{- range $dr := .Result.DocumentResults -}}
+	{{range $sr := .SectionResults -}}
+		<a href="/{{$dr.ID}}#{{$sr.ID}}">{{range $sr.Excerpts}}{{.}}{{end}}</a>
+	{{end -}}
+{{end -}}
+{{- end}}`,
 		})),
 		Assets: httpfs.New(mapfs.New(map[string]string{
 			"g.gif": string(gifData),
@@ -208,6 +217,18 @@ func TestSite_Handler(t *testing.T) {
 		checkResponseStatus(t, rr, http.StatusPermanentRedirect)
 		if got, want := rr.Header().Get("Location"), "/redirect-to"; got != want {
 			t.Errorf("got redirect Location %q, want %q", got, want)
+		}
+	})
+
+	t.Run("search", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		rr.Body = new(bytes.Buffer)
+		req, _ := http.NewRequest("GET", "/search?q=d", nil)
+		handler.ServeHTTP(rr, req)
+		checkResponseHTTPOK(t, rr)
+		checkContentPageResponse(t, rr)
+		if want := `query "d":<a href="/a/b/c.md#">d</a>`; !strings.Contains(rr.Body.String(), want) {
+			t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
 		}
 	})
 }
