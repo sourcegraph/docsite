@@ -1,0 +1,31 @@
+name: Go release
+on:
+  release:
+    types: [published]
+jobs:
+  release-linux-amd64:
+    name: Release linux/amd64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Compile and release
+      uses: sqs/go-release.action@v1.0.6
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CGO_ENABLED: 0
+        PACKAGE: ./cmd/docsite
+        GOARCH: amd64
+        GOOS: linux
+  release-darwin-amd64:
+    name: Release darwin/amd64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Compile and release
+      uses: sqs/go-release.action@v1.0.6
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CGO_ENABLED: 0
+        PACKAGE: ./cmd/docsite
+        GOARCH: amd64
+        GOOS: darwin
