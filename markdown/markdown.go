@@ -297,11 +297,17 @@ func rewriteAnchorDirectives(node *blackfriday.Node) []*blackfriday.Node {
 	return out
 }
 
+func IsDocumentTitleHeadingNode(node *blackfriday.Node) bool {
+	isHeadingLevel1 := node.Type == blackfriday.Heading && node.HeadingData.Level == 1
+	isFirstHeading := node.Parent != nil && node.Parent.Type == blackfriday.Document && node.Parent.FirstChild == node
+	return isHeadingLevel1 && isFirstHeading
+}
+
 func getTitle(node *blackfriday.Node) string {
 	if node.Type == blackfriday.Document {
 		node = node.FirstChild
 	}
-	if node != nil && node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
+	if node != nil && IsDocumentTitleHeadingNode(node) {
 		return string(RenderText(node))
 	}
 	return ""
