@@ -107,4 +107,4 @@ docker build -t sourcegraph/docsite . && \
 docker push sourcegraph/docsite
 ```
 
-For internal Sourcegraph usage, then bump the deployed version by making a change like https://github.com/sourcegraph/deploy-sourcegraph-dot-com/pull/769/files.
+For internal Sourcegraph usage, then bump the deployed version by making a change like <https://github.com/sourcegraph/deploy-sourcegraph-dot-com/commit/14cf69ac02681413e813d00f29fd302be9043709>.
