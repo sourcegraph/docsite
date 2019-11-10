@@ -5,11 +5,13 @@ import (
 	"context"
 	"html"
 	"html/template"
+	"net/url"
 	"strings"
 
 	"github.com/sourcegraph/docsite/internal/search"
 	"github.com/sourcegraph/docsite/internal/search/index"
 	"github.com/sourcegraph/docsite/internal/search/query"
+	"github.com/sourcegraph/docsite/markdown"
 )
 
 // Search searches all documents at the version for a query.
@@ -25,8 +27,10 @@ func (s *Site) Search(ctx context.Context, contentVersion string, queryStr strin
 	}
 	for _, page := range pages {
 		if err := idx.Add(ctx, index.Document{
-			ID:   index.DocID(page.FilePath),
-			Data: page.Data,
+			ID:    index.DocID(page.FilePath),
+			Title: markdown.GetTitle(markdown.NewParser(nil).Parse(page.Data)),
+			URL:   s.Base.ResolveReference(&url.URL{Path: page.Path}).String(),
+			Data:  page.Data,
 		}); err != nil {
 			return nil, err
 		}
@@ -38,7 +42,6 @@ func (s *Site) Search(ctx context.Context, contentVersion string, queryStr strin
 func (s *Site) renderSearchPage(queryStr string, result *search.Result) ([]byte, error) {
 	query := query.Parse(queryStr)
 	tmpl, err := s.getTemplate(s.Templates, searchTemplateName, template.FuncMap{
-		"nomd": func(s string) string { return strings.TrimSuffix(strings.TrimSuffix(s, ".md"), "/index") },
 		"highlight": func(text string) template.HTML {
 			var s []string
 			c := 0

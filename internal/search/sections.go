@@ -7,14 +7,17 @@ import (
 )
 
 type SectionResult struct {
-	ID       string   // the URL fragment (without "#") of the section, or empty if in the first section
-	Stack    []string // the stack of section IDs
-	Excerpts []string // the match excerpt
+	ID         string   // the URL fragment (without "#") of the section, or empty if in the first section
+	IDStack    []string // the stack of section IDs
+	Title      string   // the section title
+	TitleStack []string // the stack of section titles
+	Excerpts   []string // the match excerpt
 }
 
 func documentSectionResults(data []byte, query query.Query) ([]SectionResult, error) {
 	type stackEntry struct {
 		id    string
+		title string
 		level int
 	}
 	stack := []stackEntry{{}}
@@ -25,13 +28,28 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 	var results []SectionResult
 	addResult := func(excerpts []string) {
 		stackIDs := make([]string, len(stack))
+		stackTitles := make([]string, len(stack))
 		for i, e := range stack {
 			stackIDs[i] = e.id
+			stackTitles[i] = e.title
+		}
+		e := cur()
+
+		// If last section result was in the same section, just append the excerpt instead of
+		// creating a new section result.
+		if len(results) > 0 {
+			last := results[len(results)-1]
+			if lastResultIsSameSection := last.ID == e.id; lastResultIsSameSection {
+				last.Excerpts = append(last.Excerpts, excerpts...)
+				return
+			}
 		}
 		results = append(results, SectionResult{
-			ID:       cur().id,
-			Stack:    stackIDs,
-			Excerpts: excerpts,
+			ID:         e.id,
+			IDStack:    stackIDs,
+			Title:      e.title,
+			TitleStack: stackTitles,
+			Excerpts:   excerpts,
 		})
 	}
 
@@ -47,7 +65,11 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 				id = node.HeadingID
 			}
 
-			stack = append(stack, stackEntry{id: id, level: node.Level})
+			stack = append(stack, stackEntry{
+				id:    id,
+				title: string(markdown.RenderText(node)),
+				level: node.Level,
+			})
 		}
 
 		if entering && (node.Type == blackfriday.Paragraph || node.Type == blackfriday.Item || node.Type == blackfriday.Heading || node.Type == blackfriday.BlockQuote || node.Type == blackfriday.Code) {

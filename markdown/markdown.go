@@ -157,7 +157,7 @@ func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err err
 	if meta.Title != "" {
 		doc.Title = meta.Title
 	} else {
-		doc.Title = getTitle(ast)
+		doc.Title = GetTitle(ast)
 	}
 
 	if len(renderer.errors) > 0 {
@@ -303,7 +303,7 @@ func IsDocumentTitleHeadingNode(node *blackfriday.Node) bool {
 	return isHeadingLevel1 && isFirstHeading
 }
 
-func getTitle(node *blackfriday.Node) string {
+func GetTitle(node *blackfriday.Node) string {
 	if node.Type == blackfriday.Document {
 		node = node.FirstChild
 	}

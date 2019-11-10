@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -22,6 +23,9 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 		"asset": func(path string) string {
 			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
 		},
+		"subtract":   func(a, b int) int { return a - b },
+		"replace":    strings.Replace,
+		"trimPrefix": strings.TrimPrefix,
 	})
 	tmpl.Funcs(extraFuncs)
 

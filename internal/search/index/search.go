@@ -15,20 +15,18 @@ type Result struct {
 
 // DocumentResult is the result of a search for a single document.
 type DocumentResult struct {
-	ID    DocID  // the document ID
-	Data  []byte // the document data
+	Document
 	Score float64
 }
 
 // Search performs a search against the index.
 func (i *Index) Search(ctx context.Context, query query.Query) (*Result, error) {
 	var documentResults []DocumentResult
-	for id, data := range i.index {
-		if query.Match(data) {
+	for _, doc := range i.index {
+		if query.Match(doc.Data) {
 			documentResults = append(documentResults, DocumentResult{
-				ID:    id,
-				Data:  data,
-				Score: query.Score(data),
+				Document: doc,
+				Score:    query.Score(doc.Data),
 			})
 		}
 	}
