@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/url"
 	"regexp"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 
@@ -321,7 +323,30 @@ func RenderText(node *blackfriday.Node) []byte {
 		}
 		return blackfriday.GoToNext
 	})
-	return bytes.TrimSpace(bytes.Join(parts, []byte(" ")))
+	return bytes.TrimSpace(joinBytesAsText(parts))
+}
+
+// joinBytesAsText joins parts, adding spaces between adjacent parts unless there is already space
+// or a punctiation at the boundary.
+func joinBytesAsText(parts [][]byte) []byte {
+	// Preallocate buffer to maximum size needed.
+	size := 0
+	for _, part := range parts {
+		size += len(part) + 1
+	}
+	buf := bytes.NewBuffer(make([]byte, 0, size))
+
+	for i, part := range parts {
+		if i != 0 {
+			if r, size := utf8.DecodeRune(part); r != utf8.RuneError && size > 0 {
+				if !unicode.IsPunct(r) {
+					_ = buf.WriteByte(' ')
+				}
+			}
+		}
+		_, _ = buf.Write(part)
+	}
+	return buf.Bytes()
 }
 
 func hasSingleChildOfType(node *blackfriday.Node, typ blackfriday.NodeType) bool {

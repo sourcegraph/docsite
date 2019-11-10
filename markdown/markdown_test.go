@@ -402,3 +402,35 @@ x
 		})
 	})
 }
+
+func TestJoinBytesAsText(t *testing.T) {
+	tests := map[string]struct {
+		parts []string
+		want  string
+	}{
+		"adjacent words": {
+			parts: []string{"a", "b"},
+			want:  "a b",
+		},
+		"adjacent sentences": {
+			parts: []string{"a.", "b."},
+			want:  "a. b.",
+		},
+		"end of sentence": {
+			parts: []string{"a", ". b."},
+			want:  "a. b.",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			parts := make([][]byte, len(test.parts))
+			for i, part := range test.parts {
+				parts[i] = []byte(part)
+			}
+			got := joinBytesAsText(parts)
+			if string(got) != test.want {
+				t.Errorf("got %q, want %q", got, test.want)
+			}
+		})
+	}
+}
