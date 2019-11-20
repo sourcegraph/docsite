@@ -12,7 +12,7 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-func evalMarkdownFuncs(ctx context.Context, htmlFragment []byte, opt Options) ([]byte, error) {
+func EvalMarkdownFuncs(ctx context.Context, htmlFragment []byte, opt Options) ([]byte, error) {
 	z := html.NewTokenizer(bytes.NewReader(htmlFragment))
 	var buf bytes.Buffer
 	for {

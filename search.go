@@ -12,6 +12,7 @@ import (
 	"github.com/sourcegraph/docsite/internal/search/index"
 	"github.com/sourcegraph/docsite/internal/search/query"
 	"github.com/sourcegraph/docsite/markdown"
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 // Search searches all documents at the version for a query.
@@ -26,17 +27,47 @@ func (s *Site) Search(ctx context.Context, contentVersion string, queryStr strin
 		return nil, err
 	}
 	for _, page := range pages {
+		ast := markdown.NewParser(nil).Parse(page.Data)
+		data, err := s.renderTextContent(ctx, page, ast, contentVersion)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := idx.Add(ctx, index.Document{
 			ID:    index.DocID(page.FilePath),
-			Title: markdown.GetTitle(markdown.NewParser(nil).Parse(page.Data)),
+			Title: markdown.GetTitle(ast),
 			URL:   s.Base.ResolveReference(&url.URL{Path: page.Path}).String(),
-			Data:  page.Data,
+			Data:  data,
 		}); err != nil {
 			return nil, err
 		}
 	}
 
 	return search.Search(ctx, query.Parse(queryStr), idx)
+}
+
+func (s *Site) renderTextContent(ctx context.Context, page *ContentPage, ast *blackfriday.Node, contentVersion string) ([]byte, error) {
+	// Evaluate <div markdown-func> elements if present (use a heuristic to determine if
+	// present, to avoid needless work).
+	maybeHasMarkdownFunc := bytes.Contains(page.Data, []byte("markdown-func"))
+	if !maybeHasMarkdownFunc {
+		return page.Data, nil
+	}
+
+	opt := s.markdownOptions(page.FilePath, contentVersion)
+	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+		switch node.Type {
+		case blackfriday.HTMLBlock, blackfriday.HTMLSpan:
+			if entering {
+				if v, err := markdown.EvalMarkdownFuncs(ctx, node.Literal, opt); err == nil {
+					page.Data = bytes.Replace(page.Data, node.Literal, v, 1)
+				}
+			}
+		}
+		return blackfriday.GoToNext
+	})
+
+	return page.Data, nil
 }
 
 func (s *Site) renderSearchPage(queryStr string, result *search.Result) ([]byte, error) {

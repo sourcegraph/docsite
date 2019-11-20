@@ -55,6 +55,21 @@ type Site struct {
 
 // newContentPage creates a new ContentPage in the site.
 func (s *Site) newContentPage(ctx context.Context, filePath string, data []byte, contentVersion string) (*ContentPage, error) {
+	path := contentFilePathToPath(filePath)
+	doc, err := markdown.Run(ctx, data, s.markdownOptions(filePath, contentVersion))
+	if err != nil {
+		return nil, errors.WithMessage(err, fmt.Sprintf("run Markdown for %s", filePath))
+	}
+	return &ContentPage{
+		Path:        path,
+		FilePath:    filePath,
+		Data:        data,
+		Doc:         *doc,
+		Breadcrumbs: makeBreadcrumbEntries(path),
+	}, nil
+}
+
+func (s *Site) markdownOptions(filePath, contentVersion string) markdown.Options {
 	var urlPathPrefix string
 	if contentVersion != "" {
 		urlPathPrefix = "/@" + contentVersion + "/"
@@ -69,23 +84,12 @@ func (s *Site) newContentPage(ctx context.Context, filePath string, data []byte,
 		base = &url.URL{Path: "/"}
 	}
 
-	path := contentFilePathToPath(filePath)
-	doc, err := markdown.Run(ctx, data, markdown.Options{
+	return markdown.Options{
 		Base:                      base.ResolveReference(&url.URL{Path: urlPathPrefix}),
 		ContentFilePathToLinkPath: contentFilePathToPath,
 		Funcs:                     createMarkdownFuncs(s),
 		FuncInfo:                  markdown.FuncInfo{Version: contentVersion},
-	})
-	if err != nil {
-		return nil, errors.WithMessage(err, fmt.Sprintf("run Markdown for %s", filePath))
 	}
-	return &ContentPage{
-		Path:        path,
-		FilePath:    filePath,
-		Data:        data,
-		Doc:         *doc,
-		Breadcrumbs: makeBreadcrumbEntries(path),
-	}, nil
 }
 
 // AllContentPages returns a list of all content pages in the site.
