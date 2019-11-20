@@ -220,7 +220,7 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 		// Evaluate Markdown funcs (<div markdown-func=name ...> nodes), using a heuristic to
 		// skip blocks that don't contain any invocations.
 		if entering {
-			if v, err := evalMarkdownFuncs(ctx, node.Literal, r.Options); err == nil {
+			if v, err := EvalMarkdownFuncs(ctx, node.Literal, r.Options); err == nil {
 				node.Literal = v
 			} else {
 				r.errors = append(r.errors, err)

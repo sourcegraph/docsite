@@ -8,11 +8,19 @@ import (
 	"testing"
 
 	"github.com/sourcegraph/docsite/internal/search"
+	"github.com/sourcegraph/docsite/markdown"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
 
 func TestSearch(t *testing.T) {
+	testMarkdownFuncs = markdown.FuncMap{
+		"test-func": func(context.Context, markdown.FuncInfo, map[string]string) (string, error) {
+			return "xyz", nil
+		},
+	}
+	defer func() { testMarkdownFuncs = nil }()
+
 	tests := map[string]struct {
 		pages            map[string]string
 		wantQueryResults map[string][]string
@@ -36,6 +44,15 @@ func TestSearch(t *testing.T) {
 				"b": {"b.md", "a.md#: b"},
 			},
 		},
+		"evaluate markdown funcs": {
+			pages: map[string]string{
+				"a.md": "<div markdown-func=test-func />",
+				"b.md": "",
+			},
+			wantQueryResults: map[string][]string{
+				"x": {"a.md#: xyz"},
+			},
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -44,8 +61,7 @@ func TestSearch(t *testing.T) {
 				Content: versionedFileSystem{
 					"": httpfs.New(mapfs.New(test.pages)),
 				},
-				Templates: httpfs.New(mapfs.New(map[string]string{"doc.html": "{{markdown .Content}}"})),
-				Base:      &url.URL{Path: "/"},
+				Base: &url.URL{Path: "/"},
 			}
 			for query, wantResults := range test.wantQueryResults {
 				t.Run(query, func(t *testing.T) {

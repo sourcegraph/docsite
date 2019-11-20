@@ -25,7 +25,7 @@ import (
 // package and made optional for callers. It's in this package for simplicity for now (because it is
 // used on both https://docs.sourcegraph.com and on the in-product /help pages on Sourcegraph).
 func createMarkdownFuncs(site *Site) markdown.FuncMap {
-	return markdown.FuncMap{
+	m := markdown.FuncMap{
 		"jsonschemadoc": func(ctx context.Context, info markdown.FuncInfo, args map[string]string) (string, error) {
 			inputPath := args["path"]
 			if inputPath == "" {
@@ -106,4 +106,13 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 			return string(doc.HTML), nil
 		},
 	}
+	if testMarkdownFuncs != nil {
+		for name, f := range testMarkdownFuncs {
+			m[name] = f
+		}
+	}
+	return m
 }
+
+// testMarkdownFuncs can be set by tests to inject Markdown functions.
+var testMarkdownFuncs markdown.FuncMap
