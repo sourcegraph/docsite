@@ -4,6 +4,7 @@ A documentation site generator that fits [Sourcegraph](https://sourcegraph.com)'
 
 - Markdown source files that are browseable on the file system and readable as plain text (without custom directives or complex front matter or configuration)
 - Served by an HTTP server, not generated as static HTML files, to eliminate the need for external static site host configuration (which we found to be error-prone)
+- Provides built-in site search for all documentation versions
 - Usable within Sourcegraph to self-host docs for the current product version (with the same rendering and structure)
 
 ## Usage
@@ -59,6 +60,19 @@ The possible values for VFS URLs are:
   If the URL fragment contains a path component `*` (such as `#*/templates/`), it matches the first top-level directory in the Zip file. (This is useful when using GitHub Zip archive URLs, such as `https://codeload.github.com/alice/myrepo/zip/myrev#*/templates/`. GitHub produces Zip archives with a top-level directory `$REPO-$REV`, such as `myrepo-myrev`, and using `#*/templates/` makes it easy to descend into that top-level directory without needing to duplicate the `myrev` in the URL fragment.)
 
   If the URL contains the literal string `$VERSION`, it is replaced by the user's requested version from the URL (e.g., the URL path `/@foo/bar` means the version is `foo`). ⚠️ If you are using GitHub `codeload.github.com` archive URLs, be sure your URL contains `refs/heads/$VERSION` (as in `https://codeload.github.com/owner/repo/zip/refs/heads/$VERSION`), not just `$VERSION`. This prevents someone from forking your repository, pushing a commit to their fork with unauthorized content, and then crafting a URL on your documentation site that would cause users to view that unauthorized content (which may contain malicious scripts or misleading information).
+
+### Templates
+
+The templates use [Go-style HTML templates](https://golang.org/pkg/html/template/).
+
+- Document pages are rendered using a template named `document.html`.
+- Search result pages are rendered using a template named `search.html`.
+- The file `root.html`, if it exists, is loaded when rendering any template. You can define common templates in this file.
+
+See the following examples:
+
+- [about.sourcegraph.com/handbook templates](https://github.com/sourcegraph/about/tree/master/_resources/templates)
+- [docs.sourcegraph.com templates](https://github.com/sourcegraph/sourcegraph/tree/master/doc/_resources/templates)
 
 ### Redirects
 
