@@ -27,6 +27,15 @@ func TestSearch(t *testing.T) {
 				"b": {"b.md#: b"},
 			},
 		},
+		"boost path match": {
+			pages: map[string]string{
+				"a.md": "b",
+				"b.md": "",
+			},
+			wantQueryResults: map[string][]string{
+				"b": {"b.md", "a.md#: b"},
+			},
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -57,6 +66,9 @@ func TestSearch(t *testing.T) {
 func toResultsList(result *search.Result) []string {
 	var l []string
 	for _, dr := range result.DocumentResults {
+		if len(dr.SectionResults) == 0 {
+			l = append(l, string(dr.ID))
+		}
 		for _, sr := range dr.SectionResults {
 			for _, excerpt := range sr.Excerpts {
 				l = append(l, fmt.Sprintf("%s#%s: %s", dr.ID, sr.ID, excerpt))

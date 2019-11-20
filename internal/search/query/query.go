@@ -2,6 +2,7 @@ package query
 
 import (
 	"bytes"
+	"path"
 	"sort"
 )
 
@@ -20,9 +21,14 @@ func Parse(queryStr string) Query {
 }
 
 // Match reports whether b matches the query.
-func (q Query) Match(b []byte) bool {
+func (q Query) Match(pathStr string, b []byte) bool {
+	name := []byte(path.Base(pathStr))
+
 	b = bytes.ToLower(b)
 	for _, token := range q.tokens {
+		if bytes.Contains(name, token) {
+			return true
+		}
 		if bytes.Contains(b, token) {
 			return true
 		}
@@ -31,11 +37,17 @@ func (q Query) Match(b []byte) bool {
 }
 
 // Score scores the query match against b.
-func (q Query) Score(b []byte) float64 {
+func (q Query) Score(pathStr string, b []byte) float64 {
+	name := []byte(path.Base(pathStr))
+
 	b = bytes.ToLower(b)
+	tokensInName := 0
 	tokensMatching := 0
 	totalMatches := 0
 	for _, token := range q.tokens {
+		if bytes.Contains(name, token) {
+			tokensInName++
+		}
 		count := bytes.Count(b, token)
 		if count > 0 {
 			tokensMatching++
@@ -43,7 +55,7 @@ func (q Query) Score(b []byte) float64 {
 		totalMatches += count
 	}
 
-	return float64(tokensMatching*100) + float64(totalMatches)/float64(len(b))
+	return float64(tokensInName*500) + float64(tokensMatching*100) + float64(totalMatches)/float64(len(b)+1)
 }
 
 // Match is an array of [start, end] indexes for a match.

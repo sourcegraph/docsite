@@ -23,10 +23,10 @@ type DocumentResult struct {
 func (i *Index) Search(ctx context.Context, query query.Query) (*Result, error) {
 	var documentResults []DocumentResult
 	for _, doc := range i.index {
-		if query.Match(doc.Data) {
+		if query.Match(doc.URL, doc.Data) {
 			documentResults = append(documentResults, DocumentResult{
 				Document: doc,
-				Score:    query.Score(doc.Data),
+				Score:    query.Score(doc.URL, doc.Data),
 			})
 		}
 	}
