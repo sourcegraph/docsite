@@ -9,7 +9,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Compile and release
-      uses: sqs/go-release.action@v1.0.6
+      uses: sqs/go-release.action@v1.1.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CGO_ENABLED: 0
@@ -22,7 +22,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Compile and release
-      uses: sqs/go-release.action@v1.0.6
+      uses: sqs/go-release.action@v1.1.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CGO_ENABLED: 0
