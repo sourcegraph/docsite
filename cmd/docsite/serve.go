@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sync"
 )
 
 func init() {
@@ -28,12 +29,20 @@ func init() {
 			host = "0.0.0.0"
 		}
 
-		site, _, err := siteFromFlags()
-		if err != nil {
-			return err
-		}
+		var (
+			handlerMu sync.Mutex
+			handler   http.Handler
+		)
+		handlerMu.Lock()
+		go func() {
+			defer handlerMu.Unlock()
+			site, _, err := siteFromFlags()
+			if err != nil {
+				log.Fatal(err)
+			}
+			handler = site.Handler()
+		}()
 
-		handler := site.Handler()
 		l, err := net.Listen("tcp", *httpAddr)
 		if err != nil {
 			return err
@@ -58,7 +67,15 @@ func init() {
 			})
 		}
 		log.Printf("# Doc site is available at http://%s:%s", host, port)
-		return http.Serve(l, handler)
+		return http.Serve(l, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Listen on the HTTP port immediately (and wait for the site to be loaded before sending an
+			// HTTP response), instead of waiting to listen until the site is ready (which would cause
+			// clients to immediately hang up).
+			handlerMu.Lock()
+			h := handler
+			handlerMu.Unlock()
+			h.ServeHTTP(w, r)
+		}))
 	}
 
 	// Register the command.
