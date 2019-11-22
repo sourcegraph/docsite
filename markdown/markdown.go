@@ -15,7 +15,7 @@ import (
 
 	"github.com/Depado/bfchroma"
 	"github.com/alecthomas/chroma/styles"
-	"gopkg.in/russross/blackfriday.v2"
+	"github.com/russross/blackfriday/v2"
 )
 
 // Document is a parsed and HTML-rendered Markdown document.

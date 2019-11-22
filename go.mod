@@ -1,25 +1,24 @@
 module github.com/sourcegraph/docsite
 
 require (
-	github.com/Depado/bfchroma v1.1.1
-	github.com/alecthomas/chroma v0.6.2
-	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
+	github.com/Depado/bfchroma v1.2.0
+	github.com/alecthomas/chroma v0.6.9
+	github.com/alecthomas/colour v0.1.0 // indirect
+	github.com/dlclark/regexp2 v1.2.0 // indirect
+	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mozillazg/go-slugify v0.2.0
 	github.com/mozillazg/go-unidecode v0.1.1 // indirect
 	github.com/pkg/errors v0.8.1
+	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
-	github.com/sourcegraph/go-jsonschema v0.0.0-20190205151546-7939fa138765
+	github.com/sourcegraph/go-jsonschema v0.0.0-20191016093751-6a4f2b621f5d
 	github.com/sourcegraph/jsonschemadoc v0.0.0-20190214000648-1850b818f08c
-	github.com/stretchr/testify v1.3.0 // indirect
-	golang.org/x/net v0.0.0-20190110200230-915654e7eabc
-	golang.org/x/sys v0.0.0-20190109145017-48ac38b7c8cb // indirect
-	golang.org/x/tools v0.0.0-20190110211028-68c5ac90f574
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/russross/blackfriday.v2 v2.0.1
-	gopkg.in/yaml.v2 v2.2.2
+	github.com/stretchr/testify v1.4.0 // indirect
+	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
+	golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e // indirect
+	golang.org/x/tools v0.0.0-20191122071640-df8e87c2cec0
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.2.7
 )
-
-replace gopkg.in/russross/blackfriday.v2 v2.0.1 => github.com/russross/blackfriday/v2 v2.0.1
 
 go 1.13

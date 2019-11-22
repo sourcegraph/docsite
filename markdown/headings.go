@@ -3,8 +3,8 @@ package markdown
 import (
 	"fmt"
 
+	"github.com/russross/blackfriday/v2"
 	"github.com/shurcooL/sanitized_anchor_name"
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 // SetHeadingIDs sets the HeadingID for each heading node.

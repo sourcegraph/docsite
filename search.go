@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/russross/blackfriday/v2"
 	"github.com/sourcegraph/docsite/internal/search"
 	"github.com/sourcegraph/docsite/internal/search/index"
 	"github.com/sourcegraph/docsite/internal/search/query"
 	"github.com/sourcegraph/docsite/markdown"
-	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 // Search searches all documents at the version for a query.

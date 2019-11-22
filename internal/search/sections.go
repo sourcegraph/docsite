@@ -1,9 +1,9 @@
 package search
 
 import (
+	"github.com/russross/blackfriday/v2"
 	"github.com/sourcegraph/docsite/internal/search/query"
 	"github.com/sourcegraph/docsite/markdown"
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 type SectionResult struct {

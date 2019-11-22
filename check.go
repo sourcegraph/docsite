@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/russross/blackfriday/v2"
 	"github.com/sourcegraph/docsite/markdown"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
-	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 // Check checks the site content for common problems (such as broken links).

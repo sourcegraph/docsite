@@ -1,6 +1,6 @@
 package markdown
 
-import blackfriday "gopkg.in/russross/blackfriday.v2"
+import "github.com/russross/blackfriday/v2"
 
 // SectionNode is a section and its children.
 type SectionNode struct {
