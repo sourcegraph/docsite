@@ -56,3 +56,25 @@ func rewriteRelativeURLsInHTML(htmlFragment []byte, opt Options) ([]byte, error)
 	}
 	return buf.Bytes(), nil
 }
+
+// isOnlyHTMLComment reports whether htmlFragment consists only of zero or more HTML comments and whitespace.
+func isOnlyHTMLComment(htmlFragment []byte) bool {
+	z := html.NewTokenizer(bytes.NewReader(htmlFragment))
+	for {
+		tt := z.Next()
+		if tt == html.CommentToken {
+			continue
+		}
+		if tt == html.TextToken {
+			tok := z.Token()
+			if strings.TrimSpace(tok.Data) == "" {
+				continue
+			}
+		}
+		if tt == html.ErrorToken && z.Err() == io.EOF {
+			break
+		}
+		return false
+	}
+	return true
+}

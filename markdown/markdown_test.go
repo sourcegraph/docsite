@@ -434,3 +434,23 @@ func TestJoinBytesAsText(t *testing.T) {
 		})
 	}
 }
+
+func TestGetTitle(t *testing.T) {
+	tests := map[string]string{
+		"# h":               "h",
+		"# h\n\n# i":        "h",
+		"<!-- a -->\n# h":   "h",
+		"<!-- a --> \n# h":  "h",
+		"<!-- a -->\n\n# h": "h",
+		"a\n# h":            "",
+	}
+	for input, wantTitle := range tests {
+		t.Run(input, func(t *testing.T) {
+			ast := NewParser(nil).Parse([]byte(input))
+			title := GetTitle(ast)
+			if title != wantTitle {
+				t.Errorf("got title %q, want %q", title, wantTitle)
+			}
+		})
+	}
+}

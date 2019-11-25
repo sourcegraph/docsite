@@ -59,9 +59,9 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 				stack = stack[:len(stack)-1]
 			}
 
-			// For the document title heading, use the empty ID.
+			// For the document top title heading, use the empty ID.
 			var id string
-			if !markdown.IsDocumentTitleHeadingNode(node) {
+			if !markdown.IsDocumentTopTitleHeadingNode(node) {
 				id = node.HeadingID
 			}
 

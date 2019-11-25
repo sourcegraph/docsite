@@ -299,18 +299,36 @@ func rewriteAnchorDirectives(node *blackfriday.Node) []*blackfriday.Node {
 	return out
 }
 
-func IsDocumentTitleHeadingNode(node *blackfriday.Node) bool {
-	isHeadingLevel1 := node.Type == blackfriday.Heading && node.HeadingData.Level == 1
-	isFirstHeading := node.Parent != nil && node.Parent.Type == blackfriday.Document && node.Parent.FirstChild == node
-	return isHeadingLevel1 && isFirstHeading
+// IsDocumentTopTitleHeadingNode reports whether node is an h1-heading at the top of the document.
+func IsDocumentTopTitleHeadingNode(node *blackfriday.Node) bool {
+	if node.Parent != nil && node.Parent.Type == blackfriday.Document {
+		doc := node.Parent
+		return getDocumentTopTitleHeadingNode(doc) == node
+	}
+	return false
 }
 
-func GetTitle(node *blackfriday.Node) string {
-	if node.Type == blackfriday.Document {
-		node = node.FirstChild
+func getDocumentTopTitleHeadingNode(doc *blackfriday.Node) *blackfriday.Node {
+	if doc.Type != blackfriday.Document {
+		panic(fmt.Sprintf("got node type %q, want %q", doc.Type, blackfriday.Document))
 	}
-	if node != nil && IsDocumentTitleHeadingNode(node) {
-		return string(RenderText(node))
+
+	for node := doc.FirstChild; node != nil; node = node.Next {
+		if node.Type == blackfriday.HTMLBlock && isOnlyHTMLComment(node.Literal) {
+			continue
+		}
+		if node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
+			return node
+		}
+		return nil
+	}
+	return nil
+}
+
+func GetTitle(doc *blackfriday.Node) string {
+	title := getDocumentTopTitleHeadingNode(doc)
+	if title != nil {
+		return string(RenderText(title))
 	}
 	return ""
 }
