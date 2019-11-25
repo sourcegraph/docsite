@@ -27,3 +27,24 @@ func TestRewriteRelativeURLsInHTML(t *testing.T) {
 		})
 	}
 }
+
+func TestIsOnlyHTMLComment(t *testing.T) {
+	tests := map[string]bool{
+		`<!-- a -->`:            true,
+		`<!-- a --><!-- b -->`:  true,
+		`c`:                     false,
+		``:                      true,
+		` <!-- a -->`:           true,
+		`<!-- a --> `:           true,
+		` <!-- a --> `:          true,
+		`<!-- a --> <!-- b -->`: true,
+	}
+	for input, want := range tests {
+		t.Run(input, func(t *testing.T) {
+			got := isOnlyHTMLComment([]byte(input))
+			if got != want {
+				t.Errorf("got %v, want %v", got, want)
+			}
+		})
+	}
+}
