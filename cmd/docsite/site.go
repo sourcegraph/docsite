@@ -225,12 +225,14 @@ type versionedFileSystemURL struct {
 	url string
 
 	mu    sync.Mutex
-	cache map[string]fileSystemCacheEntry
+	cache map[string]*fileSystemCacheEntry
 }
 
 type fileSystemCacheEntry struct {
 	fs http.FileSystem
 	at time.Time
+
+	refresh sync.Once // ensures only one attempt to refresh this entry is active
 }
 
 const fileSystemCacheTTL = 5 * time.Minute
@@ -250,19 +252,33 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 
 	fs.mu.Lock()
 	if fs.cache == nil {
-		fs.cache = map[string]fileSystemCacheEntry{}
+		fs.cache = map[string]*fileSystemCacheEntry{}
 	}
 	e, ok := fs.cache[version]
 	if ok && time.Since(e.at) > fileSystemCacheTTL {
-		log.Printf("# Cached site data expired after %s, will re-download", fileSystemCacheTTL)
-		delete(fs.cache, version)
-		ok = false
+		log.Printf("# Cached site data for version %q expired after %s, refreshing in background", version, fileSystemCacheTTL)
+		go e.refresh.Do(func() {
+			ctx := context.Background() // use separate context because this runs in the background
+			if _, err := fs.fetchAndCacheVersion(ctx, version); err != nil {
+				log.Printf("# Error refreshing site data for version %q in background: %s", version, err)
+				// Cause the error to be user-visible on the next request so that external
+				// monitoring tools will detect the problem (and the site won't silently remain
+				// stale).
+				fs.mu.Lock()
+				delete(fs.cache, version)
+				fs.mu.Unlock()
+				return
+			}
+		})
 	}
 	fs.mu.Unlock()
 	if ok {
 		return e.fs, nil
 	}
+	return fs.fetchAndCacheVersion(ctx, version)
+}
 
+func (fs *versionedFileSystemURL) fetchAndCacheVersion(ctx context.Context, version string) (http.FileSystem, error) {
 	urlStr := fs.url
 	if strings.Contains(urlStr, "$VERSION") && strings.Contains(urlStr, "github") && !strings.Contains(urlStr, "refs/heads/$VERSION") {
 		return nil, fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", urlStr)
@@ -280,7 +296,7 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 		return nil, err
 	}
 	fs.mu.Lock()
-	fs.cache[version] = fileSystemCacheEntry{fs: vfs, at: time.Now()}
+	fs.cache[version] = &fileSystemCacheEntry{fs: vfs, at: time.Now()}
 	fs.mu.Unlock()
 	return vfs, nil
 }
