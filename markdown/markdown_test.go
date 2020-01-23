@@ -155,7 +155,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre style="background-color:#fff"><span style="color:#00f">var</span> foo <span style="color:#00f">struct</span>{}` + "\n" + `</pre>`
+		want := `<pre style=""><span style="color:#00f">var</span> foo <span style="color:#00f">struct</span>{}` + "\n" + `</pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -165,7 +165,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre style="background-color:#fff"><span style="color:#00f">const</span> foo = <span style="color:#a31515">&#39;bar&#39;</span>` + "\n" + `</pre>`
+		want := `<pre style=""><span style="color:#00f">const</span> foo = <span style="color:#a31515">&#39;bar&#39;</span>` + "\n" + `</pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -175,7 +175,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre style="background-color:#fff">{&#34;foo&#34;: 123}` + "\n" + `</pre>`
+		want := `<pre style="">{&#34;foo&#34;: 123}` + "\n" + `</pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
