@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -169,6 +170,108 @@ func (r *blockQuoteNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegi
 	})
 }
 
+var _ renderer.NodeRenderer = (*linkAndImageNodeRenderer)(nil)
+
+type linkAndImageNodeRenderer struct {
+	Options
+	Unsafe bool
+	XHTML  bool
+}
+
+// Copied from https://github.com/yuin/goldmark/blob/a302193b064875a8af8cd241985cb26574f37408/renderer/html/html.go#L516
+func (r *linkAndImageNodeRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Link)
+	if entering {
+		_, _ = w.WriteString("<a href=\"")
+		if r.Unsafe || !html.IsDangerousURL(n.Destination) {
+			_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
+		}
+		_ = w.WriteByte('"')
+		if n.Title != nil {
+			_, _ = w.WriteString(` title="`)
+			_, _ = w.Write(n.Title)
+			_ = w.WriteByte('"')
+		}
+		if n.Attributes() != nil {
+			html.RenderAttributes(w, n, html.LinkAttributeFilter)
+		}
+		_ = w.WriteByte('>')
+	} else {
+		_, _ = w.WriteString("</a>")
+	}
+	return ast.WalkContinue, nil
+}
+
+// Copied from https://github.com/yuin/goldmark/blob/a302193b064875a8af8cd241985cb26574f37408/renderer/html/html.go#L557
+func (r *linkAndImageNodeRenderer) renderImage(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.Image)
+	_, _ = w.WriteString("<img src=\"")
+	if r.Unsafe || !html.IsDangerousURL(n.Destination) {
+		_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
+	}
+	_, _ = w.WriteString(`" alt="`)
+	_, _ = w.Write(n.Text(source))
+	_ = w.WriteByte('"')
+	if n.Title != nil {
+		_, _ = w.WriteString(` title="`)
+		_, _ = w.Write(n.Title)
+		_ = w.WriteByte('"')
+	}
+	if n.Attributes() != nil {
+		html.RenderAttributes(w, n, html.LinkAttributeFilter)
+	}
+	if r.XHTML {
+		_, _ = w.WriteString(" />")
+	} else {
+		_, _ = w.WriteString(">")
+	}
+	return ast.WalkSkipChildren, nil
+}
+
+func (r *linkAndImageNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	fn := func(w util.BufWriter, source []byte, node ast.Node, entering bool) (status ast.WalkStatus, err error) {
+		var dest string
+		switch n := node.(type) {
+		case *ast.Link:
+			dest = string(n.Destination)
+		case *ast.Image:
+			dest = string(n.Destination)
+		default:
+			panic("unreachable")
+		}
+
+		if entering {
+			destURL, err := url.Parse(dest)
+			if err == nil && !destURL.IsAbs() && destURL.Path != "" {
+				if r.Options.ContentFilePathToLinkPath != nil {
+					destURL.Path = r.Options.ContentFilePathToLinkPath(destURL.Path)
+				}
+				if r.Options.Base != nil {
+					destURL = r.Options.Base.ResolveReference(destURL)
+				}
+				dest = destURL.String()
+			}
+		}
+
+		switch n := node.(type) {
+		case *ast.Link:
+			n.Destination = []byte(dest)
+			status, err = r.renderLink(w, source, n, entering)
+		case *ast.Image:
+			n.Destination = []byte(dest)
+			status, err = r.renderImage(w, source, n, entering)
+		default:
+			panic("unreachable")
+		}
+		return status, err
+	}
+	reg.Register(ast.KindLink, fn)
+	reg.Register(ast.KindImage, fn)
+}
+
 var _ goldmark.Extender = (*extender)(nil)
 
 type extender struct {
@@ -180,5 +283,6 @@ func (e *extender) Extend(m goldmark.Markdown) {
 		util.Prioritized(&headingNodeRenderer{}, 0),
 		util.Prioritized(&htmlBlockNodeRenderer{Options: e.Options}, 0),
 		util.Prioritized(&blockQuoteNodeRenderer{}, 0),
+		util.Prioritized(&linkAndImageNodeRenderer{Options: e.Options, Unsafe: true, XHTML: true}, 0),
 	))
 }

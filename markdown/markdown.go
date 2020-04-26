@@ -139,24 +139,6 @@ type bfRenderer struct {
 
 func (r *bfRenderer) RenderNode(ctx context.Context, w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
-	case blackfriday.Link, blackfriday.Image:
-		// Bypass the (HTMLRendererParams).AbsolutePrefix field entirely and perform our own URL
-		// resolving. This fixes the issue reported in
-		// https://github.com/russross/blackfriday.v2/pull/231 where relative URLs starting with "."
-		// are not treated as relative URLs.
-		if entering {
-			dest, err := url.Parse(string(node.LinkData.Destination))
-			if err == nil && !dest.IsAbs() && dest.Path != "" {
-				if r.Options.ContentFilePathToLinkPath != nil {
-					dest.Path = r.Options.ContentFilePathToLinkPath(dest.Path)
-				}
-				if r.Options.Base != nil {
-					dest = r.Options.Base.ResolveReference(dest)
-				}
-				node.LinkData.Destination = []byte(dest.String())
-			}
-		}
-
 	case blackfriday.Text:
 		if entering {
 			if newNodes := rewriteAnchorDirectives(node); len(newNodes) > 0 {
