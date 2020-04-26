@@ -11,10 +11,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/Depado/bfchroma"
-	"github.com/alecthomas/chroma"
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
-	"github.com/alecthomas/chroma/styles"
 	"github.com/pkg/errors"
 	"github.com/russross/blackfriday/v2"
 	"github.com/yuin/goldmark"
@@ -68,14 +65,6 @@ type FuncMap map[string]func(context.Context, FuncInfo, map[string]string) (stri
 // FuncInfo contains information passed to Markdown functions about the current execution context.
 type FuncInfo struct {
 	Version string // the version of the content containing the page to render
-}
-
-// NewParser creates a new Markdown parser (the same one used by Run).
-func NewParser(renderer blackfriday.Renderer) *blackfriday.Markdown {
-	return blackfriday.New(
-		blackfriday.WithRenderer(renderer),
-		blackfriday.WithExtensions(blackfriday.CommonExtensions),
-	)
 }
 
 func New(opt Options) goldmark.Markdown {
@@ -167,23 +156,6 @@ func (r *bfRenderer) RenderNode(ctx context.Context, w io.Writer, node *blackfri
 					dest = r.Options.Base.ResolveReference(dest)
 				}
 				node.LinkData.Destination = []byte(dest.String())
-			}
-		}
-	case blackfriday.HTMLBlock, blackfriday.HTMLSpan:
-		// Rewrite URLs correctly when they are relative to the document, regardless of whether it's
-		// an index.md document or not.
-		if entering && r.Options.Base != nil {
-			if v, err := rewriteRelativeURLsInHTML(node.Literal, r.Options); err == nil {
-				node.Literal = v
-			}
-		}
-		// Evaluate Markdown funcs (<div markdown-func=name ...> nodes), using a heuristic to
-		// skip blocks that don't contain any invocations.
-		if entering {
-			if v, err := EvalMarkdownFuncs(ctx, node.Literal, r.Options); err == nil {
-				node.Literal = v
-			} else {
-				r.errors = append(r.errors, err)
 			}
 		}
 
@@ -320,40 +292,4 @@ func joinBytesAsText(parts [][]byte) []byte {
 		_, _ = buf.Write(part)
 	}
 	return buf.Bytes()
-}
-
-func getDocumentTopTitleHeadingNodeOld(doc *blackfriday.Node) *blackfriday.Node {
-	if doc.Type != blackfriday.Document {
-		panic(fmt.Sprintf("got node type %q, want %q", doc.Type, blackfriday.Document))
-	}
-
-	for node := doc.FirstChild; node != nil; node = node.Next {
-		if node.Type == blackfriday.HTMLBlock && isOnlyHTMLComment(node.Literal) {
-			continue
-		}
-		if node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
-			return node
-		}
-		return nil
-	}
-	return nil
-}
-
-func GetTitleOld(doc *blackfriday.Node) string {
-	title := getDocumentTopTitleHeadingNodeOld(doc)
-	if title != nil {
-		return string(RenderTextOld(title))
-	}
-	return ""
-}
-
-func RenderTextOld(node *blackfriday.Node) []byte {
-	var parts [][]byte
-	node.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		if node.Type == blackfriday.Text || node.Type == blackfriday.Code {
-			parts = append(parts, node.Literal)
-		}
-		return blackfriday.GoToNext
-	})
-	return bytes.TrimSpace(joinBytesAsText(parts))
 }

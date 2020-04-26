@@ -81,6 +81,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 	<code>{{.Title}}</code>
 </h2>
 <div class="json-schema-doc pre-wrap">
+
 {{.Schema}}
 </div>`
 
@@ -99,7 +100,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 				return "", err
 			}
 
-			doc, err := markdown.Run(ctx, []byte(output.String()), markdown.Options{})
+			doc, err := markdown.Run(ctx, output.Bytes(), markdown.Options{})
 			if err != nil {
 				return "", err
 			}

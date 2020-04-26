@@ -8,11 +8,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/russross/blackfriday/v2"
 	"github.com/sourcegraph/docsite/internal/search"
 	"github.com/sourcegraph/docsite/internal/search/index"
 	"github.com/sourcegraph/docsite/internal/search/query"
 	"github.com/sourcegraph/docsite/markdown"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 )
 
 // Search searches all documents at the version for a query.
@@ -27,15 +28,15 @@ func (s *Site) Search(ctx context.Context, contentVersion string, queryStr strin
 		return nil, err
 	}
 	for _, page := range pages {
-		ast := markdown.NewParser(nil).Parse(page.Data)
-		data, err := s.renderTextContent(ctx, page, ast, contentVersion)
+		root := markdown.New(markdown.Options{}).Parser().Parse(text.NewReader(page.Data))
+		data, err := s.renderTextContent(ctx, page, root, contentVersion)
 		if err != nil {
 			return nil, err
 		}
 
 		if err := idx.Add(ctx, index.Document{
 			ID:    index.DocID(page.FilePath),
-			Title: markdown.GetTitleOld(ast),
+			Title: markdown.GetTitle(root, page.Data),
 			URL:   s.Base.ResolveReference(&url.URL{Path: page.Path}).String(),
 			Data:  data,
 		}); err != nil {
@@ -46,7 +47,7 @@ func (s *Site) Search(ctx context.Context, contentVersion string, queryStr strin
 	return search.Search(ctx, query.Parse(queryStr), idx)
 }
 
-func (s *Site) renderTextContent(ctx context.Context, page *ContentPage, ast *blackfriday.Node, contentVersion string) ([]byte, error) {
+func (s *Site) renderTextContent(ctx context.Context, page *ContentPage, node ast.Node, contentVersion string) ([]byte, error) {
 	// Evaluate <div markdown-func> elements if present (use a heuristic to determine if
 	// present, to avoid needless work).
 	maybeHasMarkdownFunc := bytes.Contains(page.Data, []byte("markdown-func"))
@@ -55,19 +56,21 @@ func (s *Site) renderTextContent(ctx context.Context, page *ContentPage, ast *bl
 	}
 
 	opt := s.markdownOptions(page.FilePath, contentVersion)
-	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		switch node.Type {
-		case blackfriday.HTMLBlock, blackfriday.HTMLSpan:
+	err := ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		switch node.Kind() {
+		case ast.KindHTMLBlock:
 			if entering {
-				if v, err := markdown.EvalMarkdownFuncs(ctx, node.Literal, opt); err == nil {
-					page.Data = bytes.Replace(page.Data, node.Literal, v, 1)
+				s := node.Lines().At(0)
+				val := s.Value(page.Data)
+				if v, err := markdown.EvalMarkdownFuncs(ctx, val, opt); err == nil {
+					page.Data = bytes.Replace(page.Data, val, v, 1)
 				}
 			}
 		}
-		return blackfriday.GoToNext
+		return ast.WalkContinue, nil
 	})
 
-	return page.Data, nil
+	return page.Data, err
 }
 
 func (s *Site) renderSearchPage(queryStr string, result *search.Result) ([]byte, error) {

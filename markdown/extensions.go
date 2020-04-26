@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/yuin/goldmark"
@@ -87,6 +88,48 @@ func hasSingleChildOfLink(node ast.Node) bool {
 	return seenLink
 }
 
+var _ renderer.NodeRenderer = (*htmlBlockNodeRenderer)(nil)
+
+type htmlBlockNodeRenderer struct {
+	Options
+}
+
+func (r *htmlBlockNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(ast.KindHTMLBlock, func(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+		var val []byte
+		n := node.(*ast.HTMLBlock)
+		for i := 0; i < n.Lines().Len(); i++ {
+			s := n.Lines().At(i)
+			val = append(val, s.Value(source)...)
+		}
+
+		// Rewrite URLs correctly when they are relative to the document, regardless of whether it's
+		// an index.md document or not.
+		if entering && r.Options.Base != nil {
+			if v, err := rewriteRelativeURLsInHTML(val, r.Options); err == nil {
+				val = v
+			}
+		}
+		// Evaluate Markdown funcs (<div markdown-func=name ...> nodes), using a heuristic to
+		// skip blocks that don't contain any invocations.
+		if entering {
+			if v, err := EvalMarkdownFuncs(context.Background(), val, r.Options); err == nil {
+				val = v
+			} else {
+				return ast.WalkStop, err
+			}
+
+			_, _ = w.Write(val)
+		} else {
+			if n.HasClosure() {
+				closure := n.ClosureLine
+				_, _ = w.Write(closure.Value(source))
+			}
+		}
+		return ast.WalkContinue, nil
+	})
+}
+
 var _ goldmark.Extender = (*extender)(nil)
 
 type extender struct {
@@ -96,5 +139,6 @@ type extender struct {
 func (e *extender) Extend(m goldmark.Markdown) {
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(&headingNodeRenderer{}, 0),
+		util.Prioritized(&htmlBlockNodeRenderer{Options: e.Options}, 0),
 	))
 }
