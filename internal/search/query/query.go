@@ -1,79 +1,83 @@
 package query
 
 import (
-	"bytes"
 	"path"
 	"sort"
+	"strings"
 )
 
 // Query is a search query.
 type Query struct {
 	input  string // the original query input string
-	tokens [][]byte
+	tokens []token
 }
 
 // Parse parses a search query string.
 func Parse(queryStr string) Query {
+	tokenStrs := strings.Fields(queryStr)
+	tokens := make([]token, len(tokenStrs))
+	for i, tokenStr := range tokenStrs {
+		tokens[i] = newToken(tokenStr)
+	}
+
 	return Query{
 		input:  queryStr,
-		tokens: bytes.Fields(bytes.ToLower([]byte(queryStr))),
+		tokens: tokens,
 	}
 }
 
-// Match reports whether b matches the query.
-func (q Query) Match(pathStr string, b []byte) bool {
-	name := []byte(path.Base(pathStr))
+// Match reports whether the path or text contains at least 1 match of the query.
+func (q Query) Match(pathStr, text string) bool {
+	name := path.Base(pathStr)
 
-	b = bytes.ToLower(b)
 	for _, token := range q.tokens {
-		if bytes.Contains(name, token) {
+		if token.pattern.MatchString(name) {
 			return true
 		}
-		if bytes.Contains(b, token) {
+		if token.pattern.MatchString(text) {
 			return true
 		}
 	}
 	return false
 }
 
-// Score scores the query match against b.
-func (q Query) Score(pathStr string, b []byte) float64 {
-	name := []byte(path.Base(pathStr))
+const maxMatchesPerDoc = 50
 
-	b = bytes.ToLower(b)
+// Score scores the query match against the path and text.
+func (q Query) Score(pathStr, text string) float64 {
+	name := path.Base(pathStr)
+
 	tokensInName := 0
 	tokensMatching := 0
 	totalMatches := 0
 	for _, token := range q.tokens {
-		if bytes.Contains(name, token) {
+		if token.pattern.MatchString(name) {
 			tokensInName++
 		}
-		count := bytes.Count(b, token)
+		count := len(token.pattern.FindAllStringIndex(text, maxMatchesPerDoc))
 		if count > 0 {
 			tokensMatching++
 		}
 		totalMatches += count
 	}
 
-	return float64(tokensInName*500) + float64(tokensMatching*100) + float64(totalMatches)/float64(len(b)+1)
+	return float64(tokensInName*500) + float64(tokensMatching*100) + float64(totalMatches)/float64(len(text)+1)
 }
 
-// Match is an array of [start, end] indexes for a match.
+// Match is an array of [start, end] byte indexes for a match.
 type Match [2]int
 
-// FindAllIndex returns a slice of all query match indexes in b.
-func (q Query) FindAllIndex(b []byte) []Match {
-	b = bytes.ToLower(b)
-	findTokenAllIndex := func(token []byte) []Match {
+// FindAllIndex returns a slice of all query match indexes in the text.
+func (q Query) FindAllIndex(text string) []Match {
+	findTokenAllIndex := func(token token) []Match {
 		var matches []Match
 		c := 0
-		for c < len(b) {
-			start := bytes.Index(b[c:], token)
-			if start == -1 {
+		for c < len(text) {
+			m := token.pattern.FindStringIndex(text[c:])
+			if m == nil {
 				break
 			}
-			start += c
-			end := start + len(token)
+			start, end := c+m[0], c+m[1]
 			matches = append(matches, Match{start, end})
 			c = end
 		}

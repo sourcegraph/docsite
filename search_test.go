@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/sourcegraph/docsite/internal/search"
+	"github.com/sourcegraph/docsite/internal/search/query"
 	"github.com/sourcegraph/docsite/markdown"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
@@ -92,4 +94,36 @@ func toResultsList(result *search.Result) []string {
 		}
 	}
 	return l
+}
+
+func TestHighlight(t *testing.T) {
+	tests := []struct {
+		query, text string
+		want        string
+	}{
+		{
+			query: "a",
+			text:  "a b a",
+			want:  "<strong>a</strong> b <strong>a</strong>",
+		},
+		{
+			query: "a",
+			text:  "b<a>a",
+			want:  "b&lt;<strong>a</strong>&gt;<strong>a</strong>",
+		},
+		{
+			query: "aaaAaaa",
+			text:  "\x9f\x92\xa1 aaaaaaA",
+			want:  "\x9f\x92\xa1 <strong>aaaaaaA</strong>",
+		},
+	}
+	for i, test := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			query := query.Parse(test.query)
+			got := highlight(query, test.text)
+			if string(got) != test.want {
+				t.Errorf("got %q, want %q", got, test.want)
+			}
+		})
+	}
 }
