@@ -8,8 +8,6 @@ import (
 	"io"
 	"net/url"
 	"regexp"
-	"unicode"
-	"unicode/utf8"
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/pkg/errors"
@@ -159,27 +157,6 @@ func (r *bfRenderer) RenderNode(ctx context.Context, w io.Writer, node *blackfri
 			}
 		}
 
-	case blackfriday.BlockQuote:
-		parseAside := func(literal []byte) string {
-			switch {
-			case bytes.HasPrefix(literal, []byte("NOTE:")):
-				return "note"
-			case bytes.HasPrefix(literal, []byte("WARNING:")):
-				return "warning"
-			default:
-				return ""
-			}
-		}
-		if node.FirstChild.FirstChild != nil {
-			if asideClass := parseAside(node.FirstChild.FirstChild.Literal); asideClass != "" {
-				if entering {
-					fmt.Fprintf(w, "<aside class=\"%s\">\n", asideClass)
-				} else {
-					fmt.Fprint(w, "</aside>\n")
-				}
-				return blackfriday.GoToNext
-			}
-		}
 	case blackfriday.Text:
 		if entering {
 			if newNodes := rewriteAnchorDirectives(node); len(newNodes) > 0 {
@@ -269,27 +246,4 @@ func GetTitle(doc ast.Node, source []byte) string {
 	}
 
 	return ""
-}
-
-// joinBytesAsText joins parts, adding spaces between adjacent parts unless there is already space
-// or a punctuation at the boundary.
-func joinBytesAsText(parts [][]byte) []byte {
-	// Preallocate buffer to maximum size needed.
-	size := 0
-	for _, part := range parts {
-		size += len(part) + 1
-	}
-	buf := bytes.NewBuffer(make([]byte, 0, size))
-
-	for i, part := range parts {
-		if i != 0 {
-			if r, size := utf8.DecodeRune(part); r != utf8.RuneError && size > 0 {
-				if !unicode.IsPunct(r) {
-					_ = buf.WriteByte(' ')
-				}
-			}
-		}
-		_, _ = buf.Write(part)
-	}
-	return buf.Bytes()
 }

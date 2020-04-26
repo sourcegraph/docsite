@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -96,8 +97,9 @@ type htmlBlockNodeRenderer struct {
 
 func (r *htmlBlockNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindHTMLBlock, func(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-		var val []byte
 		n := node.(*ast.HTMLBlock)
+
+		var val []byte
 		for i := 0; i < n.Lines().Len(); i++ {
 			s := n.Lines().At(i)
 			val = append(val, s.Value(source)...)
@@ -130,6 +132,43 @@ func (r *htmlBlockNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegis
 	})
 }
 
+var _ renderer.NodeRenderer = (*blockQuoteNodeRenderer)(nil)
+
+type blockQuoteNodeRenderer struct{}
+
+func (r *blockQuoteNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(ast.KindBlockquote, func(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+		parseAside := func(literal []byte) string {
+			switch {
+			case bytes.HasPrefix(literal, []byte("NOTE:")):
+				return "note"
+			case bytes.HasPrefix(literal, []byte("WARNING:")):
+				return "warning"
+			default:
+				return ""
+			}
+		}
+
+		n := node.(*ast.Blockquote)
+
+		paragraph := n.FirstChild()
+		var val []byte
+		for i := 0; i < paragraph.Lines().Len(); i++ {
+			s := paragraph.Lines().At(i)
+			val = append(val, s.Value(source)...)
+		}
+
+		if asideClass := parseAside(val); asideClass != "" {
+			if entering {
+				_, _ = fmt.Fprintf(w, "<aside class=\"%s\">\n", asideClass)
+			} else {
+				_, _ = fmt.Fprint(w, "</aside>\n")
+			}
+		}
+		return ast.WalkContinue, nil
+	})
+}
+
 var _ goldmark.Extender = (*extender)(nil)
 
 type extender struct {
@@ -140,5 +179,6 @@ func (e *extender) Extend(m goldmark.Markdown) {
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(&headingNodeRenderer{}, 0),
 		util.Prioritized(&htmlBlockNodeRenderer{Options: e.Options}, 0),
+		util.Prioritized(&blockQuoteNodeRenderer{}, 0),
 	))
 }
