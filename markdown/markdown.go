@@ -13,6 +13,7 @@ import (
 
 	"github.com/Depado/bfchroma"
 	"github.com/alecthomas/chroma"
+	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/styles"
 	"github.com/pkg/errors"
 	"github.com/russross/blackfriday/v2"
@@ -119,8 +120,12 @@ func New(opt Options) goldmark.Markdown {
 			&extender{Options: opt},
 			extension.GFM,
 			extension.DefinitionList,
-			extension.Typographer,
-			highlighting.Highlighting,
+			highlighting.NewHighlighting(
+				highlighting.WithStyle("vs"),
+				highlighting.WithFormatOptions(
+					chromahtml.WithLineNumbers(false),
+				),
+			),
 		),
 	)
 }
@@ -147,8 +152,8 @@ func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err err
 	}
 
 	// TODO: Use renderer.NodeRenderer to collect tree and title without parsing the second time.
-	ast := md.Parser().Parse(text.NewReader(source))
-	tree, err := newTree(ast, source)
+	root := md.Parser().Parse(text.NewReader(source))
+	tree, err := newTree(root, source)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +166,7 @@ func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err err
 	if meta.Title != "" {
 		doc.Title = meta.Title
 	} else {
-		doc.Title = GetTitle(ast, source)
+		doc.Title = GetTitle(root, source)
 	}
 
 	return doc, nil
@@ -284,40 +289,14 @@ func rewriteAnchorDirectives(node *blackfriday.Node) []*blackfriday.Node {
 }
 
 // IsDocumentTopTitleHeadingNode reports whether node is an h1-heading at the top of the document.
-func IsDocumentTopTitleHeadingNode(node *blackfriday.Node) bool {
-	if node.Parent != nil && node.Parent.Type == blackfriday.Document {
-		doc := node.Parent
-		return getDocumentTopTitleHeadingNode(doc) == node
+func IsDocumentTopTitleHeadingNode(node ast.Node) bool {
+	if node.Parent() != nil && node.Parent().Kind() == ast.KindDocument {
+		return getDocumentTopTitleHeadingNode(node.Parent()) == node
 	}
 	return false
 }
 
-func getDocumentTopTitleHeadingNode(doc *blackfriday.Node) *blackfriday.Node {
-	if doc.Type != blackfriday.Document {
-		panic(fmt.Sprintf("got node type %q, want %q", doc.Type, blackfriday.Document))
-	}
-
-	for node := doc.FirstChild; node != nil; node = node.Next {
-		if node.Type == blackfriday.HTMLBlock && isOnlyHTMLComment(node.Literal) {
-			continue
-		}
-		if node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
-			return node
-		}
-		return nil
-	}
-	return nil
-}
-
-func GetTitleOld(doc *blackfriday.Node) string {
-	title := getDocumentTopTitleHeadingNode(doc)
-	if title != nil {
-		return string(RenderTextOld(title))
-	}
-	return ""
-}
-
-func GetTitle(doc ast.Node, source []byte) string {
+func getDocumentTopTitleHeadingNode(doc ast.Node) ast.Node {
 	if doc.Kind() != ast.KindDocument {
 		panic(fmt.Sprintf("got node type %q, want %q", doc.Kind(), ast.KindDocument))
 	}
@@ -328,33 +307,25 @@ func GetTitle(doc ast.Node, source []byte) string {
 		}
 
 		n := node.(*ast.Heading)
-		if n.Level != 1 || n.Lines().Len() == 0 {
-			break
+		if n.Level == 1 {
+			return n
 		}
-
-		return string(RenderText(n, source))
+		return nil
 	}
+	return nil
+}
+
+func GetTitle(doc ast.Node, source []byte) string {
+	if doc.Kind() != ast.KindDocument {
+		panic(fmt.Sprintf("got node type %q, want %q", doc.Kind(), ast.KindDocument))
+	}
+
+	title := getDocumentTopTitleHeadingNode(doc)
+	if title != nil {
+		return string(title.Text(source))
+	}
+
 	return ""
-}
-
-func RenderTextOld(node *blackfriday.Node) []byte {
-	var parts [][]byte
-	node.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		if node.Type == blackfriday.Text || node.Type == blackfriday.Code {
-			parts = append(parts, node.Literal)
-		}
-		return blackfriday.GoToNext
-	})
-	return bytes.TrimSpace(joinBytesAsText(parts))
-}
-
-func RenderText(node ast.Node, source []byte) []byte {
-	parts := make([][]byte, node.Lines().Len())
-	for i := range parts {
-		s := node.Lines().At(i)
-		parts[i] = (&s).Value(source)
-	}
-	return bytes.TrimSpace(joinBytesAsText(parts))
 }
 
 // joinBytesAsText joins parts, adding spaces between adjacent parts unless there is already space
@@ -378,4 +349,40 @@ func joinBytesAsText(parts [][]byte) []byte {
 		_, _ = buf.Write(part)
 	}
 	return buf.Bytes()
+}
+
+func getDocumentTopTitleHeadingNodeOld(doc *blackfriday.Node) *blackfriday.Node {
+	if doc.Type != blackfriday.Document {
+		panic(fmt.Sprintf("got node type %q, want %q", doc.Type, blackfriday.Document))
+	}
+
+	for node := doc.FirstChild; node != nil; node = node.Next {
+		if node.Type == blackfriday.HTMLBlock && isOnlyHTMLComment(node.Literal) {
+			continue
+		}
+		if node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
+			return node
+		}
+		return nil
+	}
+	return nil
+}
+
+func GetTitleOld(doc *blackfriday.Node) string {
+	title := getDocumentTopTitleHeadingNodeOld(doc)
+	if title != nil {
+		return string(RenderTextOld(title))
+	}
+	return ""
+}
+
+func RenderTextOld(node *blackfriday.Node) []byte {
+	var parts [][]byte
+	node.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+		if node.Type == blackfriday.Text || node.Type == blackfriday.Code {
+			parts = append(parts, node.Literal)
+		}
+		return blackfriday.GoToNext
+	})
+	return bytes.TrimSpace(joinBytesAsText(parts))
 }

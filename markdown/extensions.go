@@ -47,7 +47,7 @@ func (r *headingNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegiste
 
 		// Add "#" anchor links to headers to make it easy for users to discover and copy links
 		// to sections of a document.
-		attrID := getAttributeID(n)
+		attrID := GetAttributeID(n)
 
 		// If heading consists only of a link, do not emit an anchor link.
 		if hasSingleChildOfLink(n) {
@@ -59,7 +59,7 @@ func (r *headingNodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegiste
 	})
 }
 
-func getAttributeID(node ast.Node) string {
+func GetAttributeID(node ast.Node) string {
 	attr, ok := node.AttributeString("id")
 	if !ok {
 		return ""

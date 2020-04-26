@@ -1,9 +1,12 @@
 package search
 
 import (
-	"github.com/russross/blackfriday/v2"
+	gohtml "html"
+
 	"github.com/sourcegraph/docsite/internal/search/query"
 	"github.com/sourcegraph/docsite/markdown"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 )
 
 type SectionResult struct {
@@ -14,7 +17,7 @@ type SectionResult struct {
 	Excerpts   []string // the match excerpt
 }
 
-func documentSectionResults(data []byte, query query.Query) ([]SectionResult, error) {
+func documentSectionResults(source []byte, query query.Query) ([]SectionResult, error) {
 	type stackEntry struct {
 		id    string
 		title string
@@ -22,8 +25,7 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 	}
 	stack := []stackEntry{{}}
 	cur := func() stackEntry { return stack[len(stack)-1] }
-	ast := markdown.NewParser(markdown.NewBfRenderer()).Parse(data)
-	markdown.SetHeadingIDs(ast)
+	root := markdown.New(markdown.Options{}).Parser().Parse(text.NewReader(source))
 
 	var results []SectionResult
 	addResult := func(excerpts []string) {
@@ -53,36 +55,47 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 		})
 	}
 
-	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		if entering && node.Type == blackfriday.Heading {
-			for node.Level <= cur().level {
+	err := ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		if node.Kind() == ast.KindHeading {
+			n := node.(*ast.Heading)
+			for n.Level <= cur().level {
 				stack = stack[:len(stack)-1]
 			}
 
 			// For the document top title heading, use the empty ID.
 			var id string
 			if !markdown.IsDocumentTopTitleHeadingNode(node) {
-				id = node.HeadingID
+				id = markdown.GetAttributeID(n)
 			}
 
 			stack = append(stack, stackEntry{
 				id:    id,
-				title: string(markdown.RenderTextOld(node)),
-				level: node.Level,
+				title: string(n.Text(source)),
+				level: n.Level,
 			})
 		}
 
-		if entering && (node.Type == blackfriday.Paragraph || node.Type == blackfriday.Item || node.Type == blackfriday.Heading || node.Type == blackfriday.BlockQuote || node.Type == blackfriday.Code) {
-			text := markdown.RenderTextOld(node)
+		if entering &&
+			(node.Kind() == ast.KindParagraph ||
+				node.Kind() == ast.KindListItem ||
+				node.Kind() == ast.KindHeading ||
+				node.Kind() == ast.KindBlockquote ||
+				node.Kind() == ast.KindCodeBlock ||
+				node.Kind() == ast.KindFencedCodeBlock) {
+			text := node.Text(source)
 			if matches := query.FindAllIndex(text); len(matches) > 0 {
 				// Don't include excerpts for heading because all of the heading is considered the
 				// match.
 				var excerpts []string
-				if node.Type != blackfriday.Heading {
+				if node.Kind() != ast.KindHeading {
 					excerpts = make([]string, len(matches))
 					for i, match := range matches {
 						const excerptMaxLength = 220
-						excerpts[i] = excerpt(string(text), match[0], match[1], excerptMaxLength)
+						excerpts[i] = gohtml.UnescapeString(string(excerpt(text, match[0], match[1], excerptMaxLength)))
 					}
 				}
 
@@ -97,11 +110,11 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 
 				addResult(excerpts)
 
-				return blackfriday.SkipChildren
+				return ast.WalkSkipChildren, nil
 			}
 		}
 
-		return blackfriday.GoToNext
+		return ast.WalkContinue, nil
 	})
-	return results, nil
+	return results, err
 }

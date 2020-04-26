@@ -1,8 +1,6 @@
 package markdown
 
 import (
-	"strings"
-
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -23,7 +21,6 @@ func newTree(node ast.Node, source []byte) ([]*SectionNode, error) {
 		}
 
 		n := node.(*ast.Heading)
-
 		for n.Level <= cur().Level {
 			stack = stack[:len(stack)-1]
 		}
@@ -37,11 +34,11 @@ func newTree(node ast.Node, source []byte) ([]*SectionNode, error) {
 			}
 		}
 		if url == "" {
-			url = "#" + getAttributeID(n)
+			url = "#" + GetAttributeID(n)
 		}
 
 		sn := &SectionNode{
-			Title: strings.ReplaceAll(string(RenderText(n, source)), "`", ""),
+			Title: string(n.Text(source)),
 			URL:   url,
 			Level: n.Level,
 		}
