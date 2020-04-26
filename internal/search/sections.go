@@ -14,7 +14,7 @@ type SectionResult struct {
 	Excerpts   []string // the match excerpt
 }
 
-func documentSectionResults(data []byte, query query.Query) ([]SectionResult, error) {
+func documentSectionResults(data string, query query.Query) ([]SectionResult, error) {
 	type stackEntry struct {
 		id    string
 		title string
@@ -22,7 +22,7 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 	}
 	stack := []stackEntry{{}}
 	cur := func() stackEntry { return stack[len(stack)-1] }
-	ast := markdown.NewParser(markdown.NewBfRenderer()).Parse(data)
+	ast := markdown.NewParser(markdown.NewBfRenderer()).Parse([]byte(data))
 	markdown.SetHeadingIDs(ast)
 
 	var results []SectionResult
@@ -73,7 +73,7 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 		}
 
 		if entering && (node.Type == blackfriday.Paragraph || node.Type == blackfriday.Item || node.Type == blackfriday.Heading || node.Type == blackfriday.BlockQuote || node.Type == blackfriday.Code) {
-			text := markdown.RenderText(node)
+			text := string(markdown.RenderText(node))
 			if matches := query.FindAllIndex(text); len(matches) > 0 {
 				// Don't include excerpts for heading because all of the heading is considered the
 				// match.
@@ -82,7 +82,7 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 					excerpts = make([]string, len(matches))
 					for i, match := range matches {
 						const excerptMaxLength = 220
-						excerpts[i] = excerpt(string(text), match[0], match[1], excerptMaxLength)
+						excerpts[i] = excerpt(text, match[0], match[1], excerptMaxLength)
 					}
 				}
 

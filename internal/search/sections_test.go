@@ -41,7 +41,7 @@ bb zz`,
 		t.Run(name, func(t *testing.T) {
 			for queryStr, wantResults := range test.wantQueryResults {
 				t.Run(queryStr, func(t *testing.T) {
-					results, err := documentSectionResults([]byte(test.data), query.Parse(queryStr))
+					results, err := documentSectionResults(test.data, query.Parse(queryStr))
 					if err != nil {
 						t.Fatal(err)
 					}

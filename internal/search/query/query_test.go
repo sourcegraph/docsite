@@ -21,11 +21,21 @@ func TestQuery_FindAllIndex(t *testing.T) {
 			query: "cc bb",
 			want:  []Match{{3, 5}, {6, 8}},
 		},
+		"case-insensitive": {
+			text:  "a A b B",
+			query: "a B",
+			want:  []Match{{0, 1}, {2, 3}, {4, 5}, {6, 7}},
+		},
+		"wide chars": {
+			text:  "a \x9f\x92\xa1 a",
+			query: "a",
+			want:  []Match{{0, 1}, {6, 7}},
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			q := Parse(test.query)
-			matches := q.FindAllIndex([]byte(test.text))
+			matches := q.FindAllIndex(test.text)
 			if !reflect.DeepEqual(matches, test.want) {
 				t.Errorf("got matches %v, want %v", matches, test.want)
 			}
