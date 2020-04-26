@@ -1,6 +1,7 @@
 package query
 
 import (
+	"math"
 	"path"
 	"sort"
 	"strings"
@@ -61,7 +62,7 @@ func (q Query) Score(pathStr, text string) float64 {
 		totalMatches += count
 	}
 
-	return float64(tokensInName*500) + float64(tokensMatching*100) + float64(totalMatches)/float64(len(text)+1)
+	return float64(tokensInName*500) + float64(float64(tokensMatching)*50*math.Pow(4, float64(tokensMatching))) + float64(totalMatches)/float64(len(text)+1)
 }
 
 // Match is an array of [start, end] byte indexes for a match.
