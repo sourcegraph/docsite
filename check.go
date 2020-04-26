@@ -10,8 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/russross/blackfriday/v2"
 	"github.com/sourcegraph/docsite/markdown"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -83,13 +84,23 @@ type contentPageCheckData struct {
 
 func (s *Site) checkContentPage(page *contentPageCheckData) (problems []string) {
 	// Find invalid links.
-	ast := markdown.NewParser(markdown.NewBfRenderer()).Parse(page.Data)
-	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		if entering && (node.Type == blackfriday.Link || node.Type == blackfriday.Image) {
-			u, err := url.Parse(string(node.LinkData.Destination))
+	root := markdown.New(markdown.Options{}).Parser().Parse(text.NewReader(page.Data))
+	ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering && (node.Kind() == ast.KindLink || node.Kind() == ast.KindImage) {
+			var dest string
+			switch n := node.(type) {
+			case *ast.Link:
+				dest = string(n.Destination)
+			case *ast.Image:
+				dest = string(n.Destination)
+			default:
+				panic("unreachable")
+			}
+
+			u, err := url.Parse(dest)
 			if err != nil {
-				problems = append(problems, fmt.Sprintf("invalid URL %q", node.LinkData.Destination))
-				return blackfriday.GoToNext
+				problems = append(problems, fmt.Sprintf("invalid URL %q", dest))
+				return ast.WalkContinue, nil
 			}
 
 			isPathOnly := u.Scheme == "" && u.Host == ""
@@ -97,10 +108,10 @@ func (s *Site) checkContentPage(page *contentPageCheckData) (problems []string) 
 			// Reject absolute paths because they will break when browsing the docs on
 			// GitHub/Sourcegraph in the repository, or if the root path ever changes.
 			if isPathOnly && strings.HasPrefix(u.Path, "/") {
-				problems = append(problems, fmt.Sprintf("must use relative, not absolute, link to %s", node.LinkData.Destination))
+				problems = append(problems, fmt.Sprintf("must use relative, not absolute, link to %s", dest))
 			}
 
-			if node.Type == blackfriday.Link {
+			if node.Kind() == ast.KindLink {
 				// Require that relative paths link to the actual .md file, so that browsing
 				// docs on the file system works.
 				if isPathOnly && u.Path != "" && !strings.HasSuffix(u.Path, ".md") {
@@ -109,7 +120,7 @@ func (s *Site) checkContentPage(page *contentPageCheckData) (problems []string) 
 			}
 		}
 
-		return blackfriday.GoToNext
+		return ast.WalkContinue, nil
 	})
 
 	// Find broken links.
