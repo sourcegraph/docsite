@@ -8,6 +8,8 @@ github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38/go.mod h1:r7bzyV
 github.com/alecthomas/chroma v0.6.0/go.mod h1:MmozekIi2rfQSzDcdEZ2BoJ9Pxs/7uc2Y4Boh+hIeZo=
 github.com/alecthomas/chroma v0.6.9 h1:afiCdwnNPo6fcyvoqqsXs78t7NbR9TuW4wDB7NJkcag=
 github.com/alecthomas/chroma v0.6.9/go.mod h1:1U/PfCsTALWWYHDnsIQkxEBM0+6LLe0v8+RSVMOwxeY=
+github.com/alecthomas/chroma v0.7.2-0.20200305040604-4f3623dce67a h1:3v1NrYWWqp2S72e4HLgxKt83B3l0lnORDholH/ihoMM=
+github.com/alecthomas/chroma v0.7.2-0.20200305040604-4f3623dce67a/go.mod h1:fv5SzZPFJbwp2NXJWpFIX7DZS4HgV1K4ew4Pc2OZD9s=
 github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 h1:JHZL0hZKJ1VENNfmXvHbgYlbUOvpzYzvy2aZU5gXVeo=
 github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721/go.mod h1:QO9JBoKquHd+jz9nshCh40fOfO+JzsoXy8qTHF68zU0=
 github.com/alecthomas/colour v0.1.0 h1:nOE9rJm6dsZ66RGWYSFrXw461ZIt9A6+nHgL7FRrDUk=
@@ -75,6 +77,11 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPUpymEIMZ47gx8=
+github.com/yuin/goldmark v1.1.22/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+github.com/yuin/goldmark v1.1.30 h1:j4d4Lw3zqZelDhBksEo3BnWg9xhXRQGJPPSL6OApZjI=
+github.com/yuin/goldmark v1.1.30/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691 h1:VWSxtAiQNh3zgHJpdpkpVYjTPqRE3P6UZCOPa1nRDio=
+github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691/go.mod h1:YLF3kDffRfUH/bTxOxHhV6lxwIB3Vfj91rEwNMS9MXo=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20190620200207-3b0461eec859/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914 h1:MlY3mEfbnWGmUi4rtHOtNnnnN4UJRGSyLPx+DXA5Sq4=

@@ -35,7 +35,7 @@ func (s *Site) Search(ctx context.Context, contentVersion string, queryStr strin
 
 		if err := idx.Add(ctx, index.Document{
 			ID:    index.DocID(page.FilePath),
-			Title: markdown.GetTitle(ast),
+			Title: markdown.GetTitleOld(ast),
 			URL:   s.Base.ResolveReference(&url.URL{Path: page.Path}).String(),
 			Data:  data,
 		}); err != nil {

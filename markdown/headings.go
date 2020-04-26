@@ -35,7 +35,7 @@ func SetHeadingIDs(node *blackfriday.Node) {
 			// Make the heading ID based on the text contents, not the raw contents. (But keep the
 			// heading ID explicitly specified with `# foo {:#myid}`, if any.)
 			if hasExplicitHeadingID := node.HeadingID != ""; !hasExplicitHeadingID {
-				node.HeadingID = sanitized_anchor_name.Create(string(RenderText(node)))
+				node.HeadingID = sanitized_anchor_name.Create(string(RenderTextOld(node)))
 			}
 
 			// Ensure the heading ID is unique. The blackfriday package (in ensureUniqueHeadingID)

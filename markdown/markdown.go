@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html"
+	gohtml "html"
 	"io"
 	"net/url"
 	"regexp"
@@ -16,6 +16,13 @@ import (
 	"github.com/alecthomas/chroma/styles"
 	"github.com/pkg/errors"
 	"github.com/russross/blackfriday/v2"
+	"github.com/yuin/goldmark"
+	highlighting "github.com/yuin/goldmark-highlighting"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 )
 
 // Document is a parsed and HTML-rendered Markdown document.
@@ -87,7 +94,7 @@ var chromaStyle = styles.Register(chroma.MustNewStyle("vs", chroma.StyleEntries{
 	chroma.Error:             "border:#FF0000",
 }))
 
-// NewBfRenderer creates the default blackfriday renderer to be passed to NewParser()
+// NewBfRenderer creates the default blackfriday render to be passed to NewParser()
 func NewBfRenderer() blackfriday.Renderer {
 	return bfchroma.NewRenderer(
 		bfchroma.ChromaStyle(chromaStyle),
@@ -99,42 +106,23 @@ func NewBfRenderer() blackfriday.Renderer {
 	)
 }
 
-var pipePlaceholder = []byte("\xe2\xa6\x80")
-
-// escapePipesInBackticks works around https://github.com/russross/blackfriday/issues/207,
-// substituting unicode character U+2980 (triple vertical bar) for escaped pipe symbols "\|"
-// occurring within backtick-delimited code blocks.
-func escapePipesInBackticks(b []byte) ([]byte, error) {
-	if bytes.Contains(b, pipePlaceholder) {
-		return nil, errors.Errorf("unhandled case: placeholder %s is already in the document", pipePlaceholder)
-	}
-	in := false
-	b2 := make([]byte, 0, len(b))
-	i := 0
-	for i < len(b) {
-		switch {
-		case b[i] == '`':
-			in = !in
-			b2 = append(b2, b[i])
-		case b[i] == '\\' && i+1 < len(b) && b[i+1] == '|':
-			if in {
-				b2 = append(b2, pipePlaceholder...)
-			}
-			i++
-		case b[i] == '\n':
-			in = false
-			b2 = append(b2, b[i])
-		default:
-			b2 = append(b2, b[i])
-		}
-		i++
-	}
-	return b2, nil
-}
-
-// unescapePipes reverses the escapes done in escapePipesInBackticks.
-func unescapePipes(b []byte) []byte {
-	return bytes.Replace(b, pipePlaceholder, []byte("|"), -1)
+func New(opt Options) goldmark.Markdown {
+	return goldmark.New(
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+		goldmark.WithRendererOptions(
+			html.WithXHTML(),
+			html.WithUnsafe(),
+		),
+		goldmark.WithExtensions(
+			&extender{Options: opt},
+			extension.GFM,
+			extension.DefinitionList,
+			extension.Typographer,
+			highlighting.Highlighting,
+		),
+	)
 }
 
 // Run parses and HTML-renders a Markdown document (with optional metadata in the Markdown "front
@@ -146,69 +134,43 @@ func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err err
 		}
 	}()
 
-	input, err = escapePipesInBackticks(input)
-	if err != nil {
-		return nil, errors.Wrap(err, "escaping pipes within backticks")
-	}
-
-	meta, markdown, err := parseMetadata(input)
+	meta, source, err := parseMetadata(input)
 	if err != nil {
 		return nil, err
 	}
 
-	bfRenderer := NewBfRenderer()
-	ast := NewParser(bfRenderer).Parse(markdown)
-	renderer := &renderer{
-		Options:  opt,
-		Renderer: bfRenderer,
-	}
+	md := New(opt)
 	var buf bytes.Buffer
-	SetHeadingIDs(ast)
-	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		return renderer.RenderNode(ctx, &buf, node, entering)
-	})
+	err = md.Convert(source, &buf)
+	if err != nil {
+		return nil, err
+	}
 
+	// TODO: Use renderer.NodeRenderer to collect tree and title without parsing the second time.
+	ast := md.Parser().Parse(text.NewReader(source))
 	doc = &Document{
 		Meta: meta,
-		HTML: unescapePipes(buf.Bytes()),
-		Tree: newTree(ast),
+		HTML: buf.Bytes(),
+		Tree: newTree(ast, source),
 	}
 	if meta.Title != "" {
 		doc.Title = meta.Title
 	} else {
-		doc.Title = GetTitle(ast)
+		doc.Title = GetTitle(ast, source)
 	}
 
-	if len(renderer.errors) > 0 {
-		err = renderer.errors[0]
-	}
-	return doc, err
+	return doc, nil
 }
 
-type renderer struct {
+type bfRenderer struct {
 	Options
 	blackfriday.Renderer
 
 	errors []error
 }
 
-func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+func (r *bfRenderer) RenderNode(ctx context.Context, w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
-	case blackfriday.Heading:
-		// Add "#" anchor links to headers to make it easy for users to discover and copy links
-		// to sections of a document.
-		if status := r.Renderer.RenderNode(w, node, entering); status != blackfriday.GoToNext {
-			return status
-		}
-		if entering {
-			// If heading consists only of a link, do not emit an anchor link.
-			if hasSingleChildOfType(node, blackfriday.Link) {
-				fmt.Fprintf(w, `<a name="%s" aria-hidden="true"></a>`, node.HeadingID)
-			} else {
-				fmt.Fprintf(w, `<a name="%s" class="anchor" href="#%s" rel="nofollow" aria-hidden="true" title="#%s"></a>`, node.HeadingID, node.HeadingID, node.HeadingID)
-			}
-		}
-		return blackfriday.GoToNext
 	case blackfriday.Link, blackfriday.Image:
 		// Bypass the (HTMLRendererParams).AbsolutePrefix field entirely and perform our own URL
 		// resolving. This fixes the issue reported in
@@ -304,7 +266,7 @@ func rewriteAnchorDirectives(node *blackfriday.Node) []*blackfriday.Node {
 		}
 
 		n := blackfriday.NewNode(blackfriday.HTMLSpan)
-		escapedID := html.EscapeString(string(node.Literal[start+2 : end-1]))
+		escapedID := gohtml.EscapeString(string(node.Literal[start+2 : end-1]))
 		n.Literal = []byte(fmt.Sprintf(`<span id="%s" class="anchor-inline"></span><a href="#%s" class="anchor-inline-link" title="#%s"></a>`, escapedID, escapedID, escapedID))
 		out = append(out, n)
 
@@ -342,15 +304,35 @@ func getDocumentTopTitleHeadingNode(doc *blackfriday.Node) *blackfriday.Node {
 	return nil
 }
 
-func GetTitle(doc *blackfriday.Node) string {
+func GetTitleOld(doc *blackfriday.Node) string {
 	title := getDocumentTopTitleHeadingNode(doc)
 	if title != nil {
-		return string(RenderText(title))
+		return string(RenderTextOld(title))
 	}
 	return ""
 }
 
-func RenderText(node *blackfriday.Node) []byte {
+func GetTitle(doc ast.Node, source []byte) string {
+	if doc.Kind() != ast.KindDocument {
+		panic(fmt.Sprintf("got node type %q, want %q", doc.Kind(), ast.KindDocument))
+	}
+
+	for node := doc.FirstChild(); node != nil; node = node.NextSibling() {
+		if node.Kind() != ast.KindHeading {
+			continue
+		}
+
+		n := node.(*ast.Heading)
+		if n.Level != 1 || n.Lines().Len() == 0 {
+			break
+		}
+
+		return string(RenderText(n, source))
+	}
+	return ""
+}
+
+func RenderTextOld(node *blackfriday.Node) []byte {
 	var parts [][]byte
 	node.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 		if node.Type == blackfriday.Text || node.Type == blackfriday.Code {
@@ -361,8 +343,17 @@ func RenderText(node *blackfriday.Node) []byte {
 	return bytes.TrimSpace(joinBytesAsText(parts))
 }
 
+func RenderText(node ast.Node, source []byte) []byte {
+	parts := make([][]byte, node.Lines().Len())
+	for i := range parts {
+		s := node.Lines().At(i)
+		parts[i] = (&s).Value(source)
+	}
+	return bytes.TrimSpace(joinBytesAsText(parts))
+}
+
 // joinBytesAsText joins parts, adding spaces between adjacent parts unless there is already space
-// or a punctiation at the boundary.
+// or a punctuation at the boundary.
 func joinBytesAsText(parts [][]byte) []byte {
 	// Preallocate buffer to maximum size needed.
 	size := 0
@@ -382,28 +373,4 @@ func joinBytesAsText(parts [][]byte) []byte {
 		_, _ = buf.Write(part)
 	}
 	return buf.Bytes()
-}
-
-func hasSingleChildOfType(node *blackfriday.Node, typ blackfriday.NodeType) bool {
-	seenLink := false
-	for child := node.FirstChild; child != nil; child = child.Next {
-		switch {
-		case child.Type == blackfriday.Text && len(child.Literal) == 0:
-			continue
-		case child.Type == blackfriday.Link && !seenLink:
-			seenLink = true
-		default:
-			return false
-		}
-	}
-	return seenLink
-}
-
-func getFirstChildLink(node *blackfriday.Node) *blackfriday.Node {
-	for child := node.FirstChild; child != nil; child = child.Next {
-		if child.Type == blackfriday.Link {
-			return child
-		}
-	}
-	return nil
 }

@@ -2,7 +2,7 @@ module github.com/sourcegraph/docsite
 
 require (
 	github.com/Depado/bfchroma v1.2.0
-	github.com/alecthomas/chroma v0.6.9
+	github.com/alecthomas/chroma v0.7.2-0.20200305040604-4f3623dce67a
 	github.com/alecthomas/colour v0.1.0 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
@@ -14,6 +14,8 @@ require (
 	github.com/sourcegraph/go-jsonschema v0.0.0-20191016093751-6a4f2b621f5d
 	github.com/sourcegraph/jsonschemadoc v0.0.0-20190214000648-1850b818f08c
 	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/yuin/goldmark v1.1.30
+	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
 	golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e // indirect
 	golang.org/x/tools v0.0.0-20191122071640-df8e87c2cec0

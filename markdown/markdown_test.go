@@ -447,7 +447,7 @@ func TestGetTitle(t *testing.T) {
 	for input, wantTitle := range tests {
 		t.Run(input, func(t *testing.T) {
 			ast := NewParser(nil).Parse([]byte(input))
-			title := GetTitle(ast)
+			title := GetTitleOld(ast)
 			if title != wantTitle {
 				t.Errorf("got title %q, want %q", title, wantTitle)
 			}

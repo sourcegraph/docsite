@@ -67,13 +67,13 @@ func documentSectionResults(data []byte, query query.Query) ([]SectionResult, er
 
 			stack = append(stack, stackEntry{
 				id:    id,
-				title: string(markdown.RenderText(node)),
+				title: string(markdown.RenderTextOld(node)),
 				level: node.Level,
 			})
 		}
 
 		if entering && (node.Type == blackfriday.Paragraph || node.Type == blackfriday.Item || node.Type == blackfriday.Heading || node.Type == blackfriday.BlockQuote || node.Type == blackfriday.Code) {
-			text := markdown.RenderText(node)
+			text := markdown.RenderTextOld(node)
 			if matches := query.FindAllIndex(text); len(matches) > 0 {
 				// Don't include excerpts for heading because all of the heading is considered the
 				// match.
