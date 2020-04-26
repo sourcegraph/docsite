@@ -120,4 +120,4 @@ docker build -t sourcegraph/docsite . && \
 docker push sourcegraph/docsite
 ```
 
-For internal Sourcegraph usage, then bump the deployed version by making a change like <https://github.com/sourcegraph/deploy-sourcegraph-dot-com/commit/14cf69ac02681413e813d00f29fd302be9043709>.
+For internal Sourcegraph usage, then bump the deployed version by updating the SHA-256 image digest in all files that refer to `sourcegraph/docsite:latest@sha256:...`. Currently the 2 files that need to be updated are `configure/about-sourcegraph-com/{docs,about}-sourcegraph-com.Deployment.yaml`.
