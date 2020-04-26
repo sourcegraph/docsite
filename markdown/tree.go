@@ -14,10 +14,10 @@ type SectionNode struct {
 	Children []*SectionNode // subsections
 }
 
-func newTree(node ast.Node, source []byte) []*SectionNode {
+func newTree(node ast.Node, source []byte) ([]*SectionNode, error) {
 	stack := []*SectionNode{{}}
 	cur := func() *SectionNode { return stack[len(stack)-1] }
-	ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+	err := ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering || node.Kind() != ast.KindHeading {
 			return ast.WalkContinue, nil
 		}
@@ -49,7 +49,7 @@ func newTree(node ast.Node, source []byte) []*SectionNode {
 		stack = append(stack, sn)
 		return ast.WalkContinue, nil
 	})
-	return stack[0].Children
+	return stack[0].Children, err
 }
 
 func getFirstChildLink(node ast.Node) *ast.Link {

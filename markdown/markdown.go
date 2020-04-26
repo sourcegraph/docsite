@@ -148,10 +148,15 @@ func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err err
 
 	// TODO: Use renderer.NodeRenderer to collect tree and title without parsing the second time.
 	ast := md.Parser().Parse(text.NewReader(source))
+	tree, err := newTree(ast, source)
+	if err != nil {
+		return nil, err
+	}
+
 	doc = &Document{
 		Meta: meta,
 		HTML: buf.Bytes(),
-		Tree: newTree(ast, source),
+		Tree: tree,
 	}
 	if meta.Title != "" {
 		doc.Title = meta.Title
