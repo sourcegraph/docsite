@@ -109,7 +109,7 @@ func Run(ctx context.Context, input []byte, opt Options) (doc *Document, err err
 		return nil, err
 	}
 
-	// TODO: Use renderer.NodeRenderer to collect tree and title without parsing the second time.
+	// TODO: https://sourcegraph.com/github.com/gohugoio/hugo@dd31e800075eebd78f921df8b4865c238006e7a7/-/blob/markup/goldmark/toc.go#L56
 	root := md.Parser().Parse(text.NewReader(source))
 	tree, err := newTree(root, source)
 	if err != nil {
