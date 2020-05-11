@@ -1,7 +1,6 @@
 package markdown
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,52 +8,56 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func check(t *testing.T, got, want Document) {
-	t.Helper()
-	if !reflect.DeepEqual(got.Meta, want.Meta) {
-		t.Errorf("got meta %+v, want %+v", got.Meta, want.Meta)
-	}
-	if got.Title != want.Title {
-		t.Errorf("got title %q, want %q", got.Title, want.Title)
-	}
-	if !bytes.Equal(got.HTML, want.HTML) {
-		t.Errorf("HTML did not match\ngot:  %s\nwant: %s", got.HTML, want.HTML)
-	}
-}
-
 func TestRun(t *testing.T) {
-	ctx := context.Background()
-	t.Run("no metadata", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`# My title
-Hello world github/linguist#1 **cool**, and #1!`), Options{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		check(t, *doc, Document{
-			Title: "My title",
-			HTML: []byte(`<h1 id="my-title"><a name="my-title" class="anchor" href="#my-title" rel="nofollow" aria-hidden="true" title="#my-title"></a>My title</h1>
+	tests := []struct {
+		name    string
+		source  string
+		wantDoc *Document
+	}{
+		{
+			name: "no metadata",
+			source: `# My title
+Hello world github/linguist#1 **cool**, and #1!`,
+			wantDoc: &Document{
+				Title: "My title",
+				HTML: []byte(`<h1 id="my-title"><a name="my-title" class="anchor" href="#my-title" rel="nofollow" aria-hidden="true" title="#my-title"></a>My title</h1>
 <p>Hello world github/linguist#1 <strong>cool</strong>, and #1!</p>
-`),
-		})
-	})
-	t.Run("metadata", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`---
+`)},
+		},
+		{
+			name: "metadata",
+			source: `---
 title: Metadata title
 ---
 
-# Markdown title`), Options{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		check(t, *doc, Document{
-			Meta:  Metadata{Title: "Metadata title"},
-			Title: "Metadata title",
-			HTML: []byte(`<h1 id="markdown-title"><a name="markdown-title" class="anchor" href="#markdown-title" rel="nofollow" aria-hidden="true" title="#markdown-title"></a>Markdown title</h1>
-`),
+# Markdown title`,
+			wantDoc: &Document{
+				Meta:  Metadata{Title: "Metadata title"},
+				Title: "Metadata title",
+				HTML: []byte(`<h1 id="markdown-title"><a name="markdown-title" class="anchor" href="#markdown-title" rel="nofollow" aria-hidden="true" title="#markdown-title"></a>Markdown title</h1>
+`)},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			doc, err := Run(context.Background(), []byte(test.source), Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test.wantDoc.Meta, doc.Meta); diff != "" {
+				t.Fatalf("Meta mismatch (-want +got):\n%s", diff)
+			} else if doc.Title != test.wantDoc.Title {
+				t.Fatalf("Title: want %q but got %q", test.wantDoc.Title, doc.Title)
+			} else if diff = cmp.Diff(string(test.wantDoc.HTML), string(doc.HTML)); diff != "" {
+				t.Fatalf("HTML mismatch (-want +got):\n%s", diff)
+			}
 		})
-	})
+	}
 }
 
 func Test_heading(t *testing.T) {

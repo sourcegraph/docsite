@@ -4,6 +4,7 @@ require (
 	github.com/alecthomas/chroma v0.7.2-0.20200305040604-4f3623dce67a
 	github.com/alecthomas/colour v0.1.0 // indirect
 	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
+	github.com/google/go-cmp v0.4.0
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mozillazg/go-slugify v0.2.0
 	github.com/mozillazg/go-unidecode v0.1.1 // indirect
