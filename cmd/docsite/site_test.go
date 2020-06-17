@@ -66,4 +66,29 @@ func TestMapFromZipArchive(t *testing.T) {
 			t.Errorf("got %+v, want %+v", m, want)
 		}
 	})
+
+	t.Run("broken symlink", func(t *testing.T) {
+		var buf bytes.Buffer
+		zw := zip.NewWriter(&buf)
+		fh := &zip.FileHeader{Name: "a/l"}
+		fh.SetMode(0755 | os.ModeSymlink)
+		f1, err := zw.CreateHeader(fh)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f1.Write([]byte("../doesnotexist"))
+		zw.Close()
+
+		zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		m, err := mapFromZipArchive(zr, "a")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := map[string]string{}; !reflect.DeepEqual(m, want) {
+			t.Errorf("got %+v, want %+v", m, want)
+		}
+	})
 }

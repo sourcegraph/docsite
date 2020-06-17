@@ -386,6 +386,9 @@ func mapFromZipArchive(z *zip.Reader, dir string) (map[string]string, error) {
 				targetPath := path.Join(path.Dir(f.Name), string(data))
 				data, err = readFile(targetPath)
 				if err != nil {
+					if os.IsNotExist(err) {
+						continue // ignore broken symlinks
+					}
 					return nil, errors.WithMessagef(err, "dereferencing symlink at %q", f.Name)
 				}
 			}
