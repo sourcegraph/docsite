@@ -60,7 +60,7 @@ func EvalMarkdownFuncs(ctx context.Context, htmlFragment []byte, opt Options) ([
 		}
 
 		if !invokedFunc {
-			buf.WriteString(tok.String())
+			buf.WriteString(tokenStringWithUnescapedText(tok))
 		}
 	}
 	return buf.Bytes(), nil

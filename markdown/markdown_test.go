@@ -240,6 +240,16 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("got %q, want %q", string(doc.HTML), want)
 		}
 	})
+	t.Run("inline javascript script tag", func(t *testing.T) {
+		doc, err := Run(ctx, []byte("<script>'a'</script>\n\na"), Options{Base: &url.URL{Path: "/"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "<script>'a'</script>\n\n<p>a</p>\n"
+		if string(doc.HTML) != want {
+			t.Errorf("got %q, want %q", string(doc.HTML), want)
+		}
+	})
 	t.Run("list", func(t *testing.T) {
 		t.Run("bare items", func(t *testing.T) {
 			doc, err := Run(ctx, []byte(`
