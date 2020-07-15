@@ -52,9 +52,21 @@ func rewriteRelativeURLsInHTML(htmlFragment []byte, opt Options) ([]byte, error)
 				}
 			}
 		}
-		buf.WriteString(tok.String())
+
+		buf.WriteString(tokenStringWithUnescapedText(tok))
 	}
 	return buf.Bytes(), nil
+}
+
+// tokenStringWithUnescapedText returns the HTML token string, except that if it is a text node, it
+// is not escaped. For example, a text node containing "&" will not have that character escaped to
+// "&amp;". This prevents double-escaping of tokens when multiple HTML tokenizers run on the
+// content.
+func tokenStringWithUnescapedText(tok html.Token) string {
+	if tok.Type == html.TextToken {
+		return tok.Data
+	}
+	return tok.String()
 }
 
 // isOnlyHTMLComment reports whether htmlFragment consists only of zero or more HTML comments and whitespace.
