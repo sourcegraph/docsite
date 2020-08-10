@@ -53,6 +53,7 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 type docsiteConfig struct {
 	Content               string
 	ContentExcludePattern string
+	DefaultContentBranch  string
 	BaseURLPath           string
 	Templates             string
 	Assets                string
@@ -187,6 +188,11 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	if err := json.Unmarshal([]byte(configData), &config); err != nil {
 		return nil, nil, errors.WithMessage(err, "reading docsite configuration")
 	}
+	if config.DefaultContentBranch == "" {
+		// Default to master out of convention. Alternatives like `main` can be set as well
+		// through the configuration.
+		config.DefaultContentBranch = "master"
+	}
 
 	// Read site data.
 	log.Println("# Downloading site data...")
@@ -200,7 +206,7 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	}
 
 	// Content is in a versioned file system.
-	content := &versionedFileSystemURL{url: config.Content}
+	content := &versionedFileSystemURL{url: config.Content, defaultBranch: config.DefaultContentBranch}
 	// Prefetch content at its default version. This ensures that the program exits if the content
 	// default version is unavailable.
 	if _, err := content.OpenVersion(context.Background(), ""); err != nil {
@@ -222,7 +228,8 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 }
 
 type versionedFileSystemURL struct {
-	url string
+	url           string
+	defaultBranch string
 
 	mu    sync.Mutex
 	cache map[string]*fileSystemCacheEntry
@@ -240,11 +247,11 @@ const fileSystemCacheTTL = 5 * time.Minute
 func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version string) (http.FileSystem, error) {
 	// HACK(sqs): this works for codeload.github.com
 	if version == "" {
-		// HACK: Use master instead of HEAD even though master is technically incorrect in the
+		// HACK: Use a default branch instead of HEAD even though a branch is technically incorrect in the
 		// general case. This is because we require that $VERSION be interpolated into
 		// refs/heads/$VERSION not just $VERSION (to avoid the security problem described below),
 		// and refs/heads/HEAD doesn't work in general.
-		version = "master"
+		version = fs.defaultBranch
 	}
 	if strings.Contains(version, "..") || strings.Contains(version, "?") || strings.Contains(version, "#") {
 		return nil, fmt.Errorf("invalid version %q", version)
