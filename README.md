@@ -71,7 +71,7 @@ The templates use [Go-style HTML templates](https://golang.org/pkg/html/template
 See the following examples:
 
 - [about.sourcegraph.com/handbook templates](https://github.com/sourcegraph/about/tree/master/_resources/templates)
-- [docs.sourcegraph.com templates](https://github.com/sourcegraph/sourcegraph/tree/master/doc/_resources/templates)
+- [docs.sourcegraph.com templates](https://github.com/sourcegraph/sourcegraph/tree/main/doc/_resources/templates)
 
 ### Redirects
 
@@ -108,7 +108,7 @@ The `docsite` tool requires site data to be available in any of the following wa
    ```
 - In the `DOCSITE_CONFIG` env var, using Zip archive URLs for `templates`, `assets`, and `content`, as in the following example:
    ```
-   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/doc/_resources/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/master#*/doc/_resources/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/"}' docsite serve
+   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/","defaultContentBranch":"main"}' docsite serve
    ```
 
 ## Development
