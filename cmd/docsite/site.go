@@ -196,13 +196,13 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 
 	// Read site data.
 	log.Println("# Downloading site data...")
-	assets, err := zipFileSystemFromURLWithDirFragment(config.Assets)
-	if err != nil {
-		return nil, nil, err
+	assets := newCachedFileSystem(func() (http.FileSystem, error) { return zipFileSystemFromURLWithDirFragment(config.Assets) })
+	if err := assets.fetchAndCache(); err != nil {
+		return nil, nil, errors.WithMessage(err, "prefetching assets")
 	}
-	templates, err := zipFileSystemFromURLWithDirFragment(config.Templates)
-	if err != nil {
-		return nil, nil, err
+	templates := newCachedFileSystem(func() (http.FileSystem, error) { return zipFileSystemFromURLWithDirFragment(config.Templates) })
+	if err := templates.fetchAndCache(); err != nil {
+		return nil, nil, errors.WithMessage(err, "prefetching templates")
 	}
 
 	// Content is in a versioned file system.
