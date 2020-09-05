@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 	"regexp"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -222,6 +223,11 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 				}
 				if r.Options.Base != nil {
 					dest = r.Options.Base.ResolveReference(dest)
+
+					// Remove trailing slashes, which are never used for content page links (except the root).
+					if dest.Path != "/" {
+						dest.Path = strings.TrimSuffix(dest.Path, "/")
+					}
 				}
 				node.LinkData.Destination = []byte(dest.String())
 			}
