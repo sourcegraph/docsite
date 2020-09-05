@@ -21,7 +21,7 @@ func TestSearch(t *testing.T) {
 			return "xyz", nil
 		},
 	}
-	defer func() { testMarkdownFuncs = nil }()
+	t.Cleanup(func() { testMarkdownFuncs = nil })
 
 	tests := map[string]struct {
 		pages            map[string]string
