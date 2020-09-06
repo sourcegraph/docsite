@@ -19,7 +19,17 @@ func TestQuery_FindAllIndex(t *testing.T) {
 		"token substring of another token": {
 			text:  "aa",
 			query: "a aa",
+			want:  []Match{{0, 1}, {0, 2}, {1, 2}},
+		},
+		"token substring of another token with only shorter match": {
+			text:  "ab",
+			query: "ab abc",
 			want:  []Match{{0, 2}},
+		},
+		"duplicate tokens": {
+			text:  "a",
+			query: "a a",
+			want:  []Match{{0, 1}},
 		},
 		"tokenization": {
 			text:  "aa bb cc",
