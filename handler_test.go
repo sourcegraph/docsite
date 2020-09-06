@@ -110,6 +110,33 @@ query "{{.Query}}":
 				checkContentPageResponse(t, rr)
 			})
 
+			t.Run("index page with trailing slash", func(t *testing.T) {
+				rr := httptest.NewRecorder()
+				req, _ := http.NewRequest("GET", "/a/b/", nil)
+				handler.ServeHTTP(rr, req)
+				checkResponseStatus(t, rr, http.StatusMovedPermanently)
+				if got, want := rr.Header().Get("Location"), "/a/b"; got != want {
+					t.Errorf("got Location %q, want %q", got, want)
+				}
+			})
+
+			t.Run("non-index page with trailing slash", func(t *testing.T) {
+				rr := httptest.NewRecorder()
+				req, _ := http.NewRequest("GET", "/a/b/c/", nil)
+				handler.ServeHTTP(rr, req)
+				checkResponseStatus(t, rr, http.StatusMovedPermanently)
+				if got, want := rr.Header().Get("Location"), "/a/b/c"; got != want {
+					t.Errorf("got Location %q, want %q", got, want)
+				}
+			})
+
+			t.Run("non-existent page with trailing slash", func(t *testing.T) {
+				rr := httptest.NewRecorder()
+				req, _ := http.NewRequest("GET", "/a/b/d/", nil)
+				handler.ServeHTTP(rr, req)
+				checkResponseStatus(t, rr, http.StatusNotFound)
+			})
+
 			t.Run("asset", func(t *testing.T) {
 				rr := httptest.NewRecorder()
 				req, _ := http.NewRequest("GET", "/a/b/img/f.gif", nil)

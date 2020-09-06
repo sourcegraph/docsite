@@ -30,7 +30,7 @@ func contentFilePathToPath(filePath string) string {
 // resolveAndReadAll resolves a URL path to a file path, adding a file extension (.md) and a
 // directory index filename as needed. It also returns the file content.
 func resolveAndReadAll(fs http.FileSystem, path string) (filePath string, data []byte, err error) {
-	filePath = path + ".md"
+	filePath = strings.TrimSuffix(path, "/") + ".md"
 	data, err = ReadFile(fs, filePath)
 	if isDir(fs, filePath) || (os.IsNotExist(err) && !strings.HasSuffix(path, string(os.PathSeparator)+"index")) {
 		// Try looking up the path as a directory and reading its index file (index.md).

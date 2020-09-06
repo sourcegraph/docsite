@@ -144,6 +144,12 @@ func (s *Site) Handler() http.Handler {
 			// Version found.
 			filePath, fileData, err := resolveAndReadAll(content, r.URL.Path)
 			if err == nil {
+				// Strip trailing slashes for consistency.
+				if strings.HasSuffix(r.URL.Path, "/") {
+					http.Redirect(w, r, path.Join(basePath, strings.TrimSuffix(r.URL.Path, "/")), http.StatusMovedPermanently)
+					return
+				}
+
 				// Content page found.
 				data.Content, err = s.newContentPage(r.Context(), filePath, fileData, contentVersion)
 			}
