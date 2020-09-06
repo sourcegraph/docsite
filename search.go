@@ -6,6 +6,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/russross/blackfriday/v2"
@@ -96,15 +97,28 @@ func (s *Site) renderSearchPage(queryStr string, result *search.Result) ([]byte,
 
 // highlight returns an HTML fragment with matches of the pattern in text wrapped in <strong>.
 func highlight(query query.Query, text string) template.HTML {
+	// Highlight longer matches first (among matches starting at the same position).
+	matches := query.FindAllIndex(text)
+	sort.Slice(matches, func(i, j int) bool {
+		return (matches[i][0] < matches[j][0]) || (matches[i][0] == matches[j][0] && matches[i][1] > matches[j][1])
+	})
+
 	var s []string
 	c := 0
-	for _, match := range query.FindAllIndex(text) {
+	for _, match := range matches {
 		start, end := match[0], match[1]
 		if start > c {
 			s = append(s, html.EscapeString(text[c:start]))
 		}
-		s = append(s, "<strong>"+html.EscapeString(text[start:end])+"</strong>")
-		c = end
+		if start < c {
+			start = c
+		}
+		if start < end {
+			s = append(s, "<strong>"+html.EscapeString(text[start:end])+"</strong>")
+		}
+		if end > c {
+			c = end
+		}
 	}
 	if c < len(text) {
 		s = append(s, html.EscapeString(text[c:]))

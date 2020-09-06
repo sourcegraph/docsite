@@ -15,28 +15,15 @@ type Query struct {
 
 // Parse parses a search query string.
 func Parse(queryStr string) Query {
+	// Find unique token strings.
 	tokenStrs := strings.Fields(queryStr)
+	uniq := make(map[string]struct{}, len(tokenStrs))
+	for _, tokenStr := range tokenStrs {
+		uniq[strings.ToLower(tokenStr)] = struct{}{}
+	}
 
-	// Sort by length (longest first) so we can skip tokens that are a substring of another token
-	// efficiently.
-	sort.Slice(tokenStrs, func(i, j int) bool {
-		return len(tokenStrs[i]) > len(tokenStrs[j])
-	})
-
-	tokens := make([]token, 0, len(tokenStrs))
-	for i, tokenStr := range tokenStrs {
-		// If token is a substring of an existing token, ignore it.
-		isSubstring := false
-		for _, t := range tokenStrs[:i] {
-			if strings.Contains(t, tokenStr) {
-				isSubstring = true
-				break
-			}
-		}
-		if isSubstring {
-			continue
-		}
-
+	tokens := make([]token, 0, len(uniq))
+	for tokenStr := range uniq {
 		tokens = append(tokens, newToken(tokenStr))
 	}
 
