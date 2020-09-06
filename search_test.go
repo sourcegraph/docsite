@@ -112,6 +112,11 @@ func TestHighlight(t *testing.T) {
 			want:  "b&lt;<strong>a</strong>&gt;<strong>a</strong>",
 		},
 		{
+			query: "a aa",
+			text:  "aa",
+			want:  "<strong>aa</strong>",
+		},
+		{
 			query: "aaaAaaa",
 			text:  "\x9f\x92\xa1 aaaaaaA",
 			want:  "\x9f\x92\xa1 <strong>aaaaaaA</strong>",

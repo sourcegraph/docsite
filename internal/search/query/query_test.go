@@ -16,6 +16,11 @@ func TestQuery_FindAllIndex(t *testing.T) {
 			query: "aa",
 			want:  []Match{{0, 2}, {6, 8}},
 		},
+		"token substring of another token": {
+			text:  "aa",
+			query: "a aa",
+			want:  []Match{{0, 2}},
+		},
 		"tokenization": {
 			text:  "aa bb cc",
 			query: "cc bb",
