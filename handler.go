@@ -16,7 +16,7 @@ func (s *Site) Handler() http.Handler {
 	const (
 		cacheMaxAge0     = "max-age=0"
 		cacheMaxAgeShort = "max-age=60"
-		cacheMaxAgeLong  = "max-age=3600"
+		cacheMaxAgeLong  = "max-age=300"
 	)
 	isNoCacheRequest := func(r *http.Request) bool {
 		return r.Header.Get("Cache-Control") == "no-cache"
