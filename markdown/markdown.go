@@ -13,8 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Depado/bfchroma"
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/styles"
+	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/pkg/errors"
 	"github.com/russross/blackfriday/v2"
 )
@@ -71,27 +70,10 @@ func NewParser(renderer blackfriday.Renderer) *blackfriday.Markdown {
 	)
 }
 
-// styles.VisualStudio without bg:#ffffff.
-var chromaStyle = styles.Register(chroma.MustNewStyle("vs", chroma.StyleEntries{
-	chroma.Comment:           "#008000",
-	chroma.CommentPreproc:    "#0000ff",
-	chroma.Keyword:           "#0000ff",
-	chroma.OperatorWord:      "#0000ff",
-	chroma.KeywordType:       "#2b91af",
-	chroma.NameClass:         "#2b91af",
-	chroma.LiteralString:     "#a31515",
-	chroma.GenericHeading:    "bold",
-	chroma.GenericSubheading: "bold",
-	chroma.GenericEmph:       "italic",
-	chroma.GenericStrong:     "bold",
-	chroma.GenericPrompt:     "bold",
-	chroma.Error:             "border:#FF0000",
-}))
-
 // NewBfRenderer creates the default blackfriday renderer to be passed to NewParser()
 func NewBfRenderer() blackfriday.Renderer {
 	return bfchroma.NewRenderer(
-		bfchroma.ChromaStyle(chromaStyle),
+		bfchroma.ChromaOptions(chromahtml.WithClasses()),
 		bfchroma.Extend(
 			blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
 				Flags: blackfriday.CommonHTMLFlags,
