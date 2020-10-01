@@ -73,7 +73,7 @@ func NewParser(renderer blackfriday.Renderer) *blackfriday.Markdown {
 // NewBfRenderer creates the default blackfriday renderer to be passed to NewParser()
 func NewBfRenderer() blackfriday.Renderer {
 	return bfchroma.NewRenderer(
-		bfchroma.ChromaOptions(chromahtml.WithClasses()),
+		bfchroma.ChromaOptions(chromahtml.WithClasses(true)),
 		bfchroma.Extend(
 			blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
 				Flags: blackfriday.CommonHTMLFlags,
