@@ -16,7 +16,7 @@ func (s *Site) Handler() http.Handler {
 	const (
 		cacheMaxAge0     = "max-age=0"
 		cacheMaxAgeShort = "max-age=60"
-		cacheMaxAgeLong  = "max-age=3600"
+		cacheMaxAgeLong  = "max-age=300"
 	)
 	isNoCacheRequest := func(r *http.Request) bool {
 		return r.Header.Get("Cache-Control") == "no-cache"
@@ -63,7 +63,7 @@ func (s *Site) Handler() http.Handler {
 
 		var respData []byte
 		if r.Method == "GET" {
-			respData, err = s.renderSearchPage(queryStr, result)
+			respData, err = s.renderSearchPage(contentVersion, queryStr, result)
 			if err != nil {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
 				http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)

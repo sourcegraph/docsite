@@ -1,14 +1,17 @@
 package docsite
 
 import (
+	"context"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sourcegraph/docsite/markdown"
 )
 
 const (
@@ -18,10 +21,37 @@ const (
 )
 
 func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs template.FuncMap) (*template.Template, error) {
+	readFile := func(fs http.FileSystem, path string) ([]byte, error) {
+		f, err := fs.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		data, err := ioutil.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
+	}
+
 	tmpl := template.New(rootTemplateName)
 	tmpl.Funcs(template.FuncMap{
 		"asset": func(path string) string {
 			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
+		},
+		"renderMarkdownContentFile": func(version, path string) (template.HTML, error) {
+			fs, err := s.Content.OpenVersion(context.Background(), version)
+			if err != nil {
+				return "", err
+			}
+			data, err := readFile(fs, path)
+			if err != nil {
+				return "", err
+			}
+			doc, err := markdown.Run(context.Background(), data, s.markdownOptions(path, version))
+			if err != nil {
+				return "", err
+			}
+			return template.HTML(doc.HTML), nil
 		},
 		"subtract":   func(a, b int) int { return a - b },
 		"replace":    strings.Replace,
