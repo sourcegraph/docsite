@@ -26,6 +26,7 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 		if err != nil {
 			return nil, err
 		}
+		defer f.Close()
 		data, err := ioutil.ReadAll(f)
 		if err != nil {
 			return nil, err
@@ -37,6 +38,18 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 	tmpl.Funcs(template.FuncMap{
 		"asset": func(path string) string {
 			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
+		},
+		"contentFileExists": func(version, path string) bool {
+			fs, err := s.Content.OpenVersion(context.Background(), version)
+			if err != nil {
+				return false
+			}
+			f, err := fs.Open(path)
+			// Treat all errors as "not-exists".
+			if f != nil {
+				f.Close()
+			}
+			return err == nil
 		},
 		"renderMarkdownContentFile": func(version, path string) (template.HTML, error) {
 			fs, err := s.Content.OpenVersion(context.Background(), version)
