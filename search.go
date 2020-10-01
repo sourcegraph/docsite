@@ -71,7 +71,7 @@ func (s *Site) renderTextContent(ctx context.Context, page *ContentPage, ast *bl
 	return page.Data, nil
 }
 
-func (s *Site) renderSearchPage(queryStr string, result *search.Result) ([]byte, error) {
+func (s *Site) renderSearchPage(contentVersion, queryStr string, result *search.Result) ([]byte, error) {
 	query := query.Parse(queryStr)
 	tmpl, err := s.getTemplate(s.Templates, searchTemplateName, template.FuncMap{
 		"highlight": func(text string) template.HTML { return highlight(query, text) },
@@ -81,11 +81,13 @@ func (s *Site) renderSearchPage(queryStr string, result *search.Result) ([]byte,
 	}
 
 	data := struct {
-		Query  string
-		Result *search.Result
+		ContentVersion string
+		Query          string
+		Result         *search.Result
 	}{
-		Query:  queryStr,
-		Result: result,
+		ContentVersion: contentVersion,
+		Query:          queryStr,
+		Result:         result,
 	}
 
 	var buf bytes.Buffer

@@ -63,7 +63,7 @@ func (s *Site) Handler() http.Handler {
 
 		var respData []byte
 		if r.Method == "GET" {
-			respData, err = s.renderSearchPage(queryStr, result)
+			respData, err = s.renderSearchPage(contentVersion, queryStr, result)
 			if err != nil {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
 				http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
