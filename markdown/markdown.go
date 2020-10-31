@@ -319,13 +319,9 @@ func getDocumentTopTitleHeadingNode(doc *blackfriday.Node) *blackfriday.Node {
 	}
 
 	for node := doc.FirstChild; node != nil; node = node.Next {
-		if node.Type == blackfriday.HTMLBlock && isOnlyHTMLComment(node.Literal) {
-			continue
-		}
 		if node.Type == blackfriday.Heading && node.HeadingData.Level == 1 {
 			return node
 		}
-		return nil
 	}
 	return nil
 }
