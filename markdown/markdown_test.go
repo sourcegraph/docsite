@@ -452,7 +452,7 @@ func TestGetTitle(t *testing.T) {
 		"<!-- a -->\n# h":   "h",
 		"<!-- a --> \n# h":  "h",
 		"<!-- a -->\n\n# h": "h",
-		"a\n# h":            "",
+		"a\n# h":            "h",
 	}
 	for input, wantTitle := range tests {
 		t.Run(input, func(t *testing.T) {
