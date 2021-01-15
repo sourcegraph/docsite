@@ -95,19 +95,13 @@ func (s *Site) Handler() http.Handler {
 			}
 		}
 
-		// Support requests for other versions of content.
+		// Support was removed for requests for other versions of content.
+		//
+		// TODO(sqs): finish removing all code that supported this
 		var contentVersion string
 		if strings.HasPrefix(r.URL.Path, "@") {
-			end := strings.Index(r.URL.Path[1:], "/")
-			var urlPath string
-			if end == -1 {
-				urlPath = ""
-				contentVersion = r.URL.Path[1:]
-			} else {
-				urlPath = r.URL.Path[1+end+1:]
-				contentVersion = r.URL.Path[1 : 1+end]
-			}
-			r = requestShallowCopyWithURLPath(r, urlPath)
+			http.Error(w, "only the default branch is served", http.StatusNotFound)
+			return
 		}
 
 		if IsContentAsset(r.URL.Path) {

@@ -149,81 +149,25 @@ query "{{.Query}}":
 		})
 
 		t.Run("other version", func(t *testing.T) {
-			t.Run("root", func(t *testing.T) {
+			t.Run("not served", func(t *testing.T) {
 				rr := httptest.NewRecorder()
 				rr.Body = new(bytes.Buffer)
 				req, _ := http.NewRequest("GET", "/@otherversion", nil)
 				handler.ServeHTTP(rr, req)
-				checkResponseHTTPOK(t, rr)
-				checkContentPageResponse(t, rr)
-				if want := "other version index"; !strings.Contains(rr.Body.String(), want) {
-					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
-				}
-			})
-
-			t.Run("page", func(t *testing.T) {
-				rr := httptest.NewRecorder()
-				rr.Body = new(bytes.Buffer)
-				req, _ := http.NewRequest("GET", "/@otherversion/a", nil)
-				handler.ServeHTTP(rr, req)
-				checkResponseHTTPOK(t, rr)
-				checkContentPageResponse(t, rr)
-				if want := "other version a"; !strings.Contains(rr.Body.String(), want) {
-					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
-				}
-			})
-		})
-
-		t.Run("version not found", func(t *testing.T) {
-			t.Run("root", func(t *testing.T) {
-				rr := httptest.NewRecorder()
-				rr.Body = new(bytes.Buffer)
-				req, _ := http.NewRequest("GET", "/@badversion", nil)
-				handler.ServeHTTP(rr, req)
 				checkResponseStatus(t, rr, http.StatusNotFound)
-				checkContentPageResponse(t, rr)
-				if want := "content version not found"; !strings.Contains(rr.Body.String(), want) {
-					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
-				}
-			})
-
-			t.Run("page", func(t *testing.T) {
-				rr := httptest.NewRecorder()
-				rr.Body = new(bytes.Buffer)
-				req, _ := http.NewRequest("GET", "/@badversion/a", nil)
-				handler.ServeHTTP(rr, req)
-				checkResponseStatus(t, rr, http.StatusNotFound)
-				checkContentPageResponse(t, rr)
-				if want := "content version not found"; !strings.Contains(rr.Body.String(), want) {
-					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
-				}
 			})
 		})
 
 		t.Run("page not found", func(t *testing.T) {
-			t.Run("default version", func(t *testing.T) {
-				rr := httptest.NewRecorder()
-				rr.Body = new(bytes.Buffer)
-				req, _ := http.NewRequest("GET", "/doesntexist", nil)
-				handler.ServeHTTP(rr, req)
-				checkResponseStatus(t, rr, http.StatusNotFound)
-				checkContentPageResponse(t, rr)
-				if want := "content page not found"; !strings.Contains(rr.Body.String(), want) {
-					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
-				}
-			})
-
-			t.Run("other version", func(t *testing.T) {
-				rr := httptest.NewRecorder()
-				rr.Body = new(bytes.Buffer)
-				req, _ := http.NewRequest("GET", "/@otherversion/doesntexist", nil)
-				handler.ServeHTTP(rr, req)
-				checkResponseStatus(t, rr, http.StatusNotFound)
-				checkContentPageResponse(t, rr)
-				if want := "content page not found"; !strings.Contains(rr.Body.String(), want) {
-					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
-				}
-			})
+			rr := httptest.NewRecorder()
+			rr.Body = new(bytes.Buffer)
+			req, _ := http.NewRequest("GET", "/doesntexist", nil)
+			handler.ServeHTTP(rr, req)
+			checkResponseStatus(t, rr, http.StatusNotFound)
+			checkContentPageResponse(t, rr)
+			if want := "content page not found"; !strings.Contains(rr.Body.String(), want) {
+				t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
+			}
 		})
 	})
 
