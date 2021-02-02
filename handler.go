@@ -21,6 +21,16 @@ func (s *Site) Handler() http.Handler {
 	isNoCacheRequest := func(r *http.Request) bool {
 		return r.Header.Get("Cache-Control") == "no-cache"
 	}
+	isRedirect := func(path string) *url.URL {
+		requestPathWithLeadingSlash := path
+		if !strings.HasPrefix(requestPathWithLeadingSlash, "/") {
+			requestPathWithLeadingSlash = "/" + requestPathWithLeadingSlash
+		}
+		if redirectTo, ok := s.Redirects[requestPathWithLeadingSlash]; ok {
+			return redirectTo
+		}
+		return nil
+	}
 	setCacheControl := func(w http.ResponseWriter, r *http.Request, cacheControl string) {
 		if isNoCacheRequest(r) {
 			w.Header().Set("Cache-Control", cacheMaxAge0)
@@ -84,15 +94,9 @@ func (s *Site) Handler() http.Handler {
 			return
 		}
 
-		{
-			requestPathWithLeadingSlash := r.URL.Path
-			if !strings.HasPrefix(requestPathWithLeadingSlash, "/") {
-				requestPathWithLeadingSlash = "/" + requestPathWithLeadingSlash
-			}
-			if redirectTo, ok := s.Redirects[requestPathWithLeadingSlash]; ok {
-				http.Redirect(w, r, redirectTo.String(), http.StatusPermanentRedirect)
-				return
-			}
+		if redirectTo := isRedirect(r.URL.Path); redirectTo != nil {
+			http.Redirect(w, r, redirectTo.String(), http.StatusPermanentRedirect)
+			return
 		}
 
 		// Support requests for other versions of content.
@@ -160,6 +164,21 @@ func (s *Site) Handler() http.Handler {
 					http.Error(w, "content error: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
+
+				// If this is a versioned request, let's see if we have a
+				// redirect that would have matched an unversioned request. We
+				// can't really make this worse, after all, and we now have the
+				// version cached.
+				if contentVersion != "" {
+					if to := isRedirect(r.URL.Path); to != nil {
+						// We need to ensure we redirect to a page on the same
+						// version, and this needs to be an absolute path, so we
+						// prepend a slash.
+						http.Redirect(w, r, "/"+filepath.Join("@"+contentVersion, to.String()), http.StatusPermanentRedirect)
+						return
+					}
+				}
+
 				data.ContentPageNotFoundError = true
 			}
 		}
