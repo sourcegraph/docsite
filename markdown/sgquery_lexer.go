@@ -48,7 +48,7 @@ func sgqueryRules() Rules {
 				`rule:`,
 				`select:`,
 			), NameBuiltin, Push("value")},
-			{Words("", `\b`, `and`, `or`), Keyword, nil},
+			{Words("", `\b`, `and`, `or`, `not`), Keyword, nil},
 			{`\(`, Punctuation, Push()},
 			{`\)`, Punctuation, Pop(1)},
 			{`[^\s]+`, Text, nil},
