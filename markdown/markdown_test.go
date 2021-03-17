@@ -155,7 +155,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre class="chroma"><span class="kd">var</span> <span class="nx">foo</span> <span class="kd">struct</span><span class="p">{</span><span class="p">}</span>` + "\n" + `</pre>`
+		want := `<pre class="chroma go"><span class="kd">var</span> <span class="nx">foo</span> <span class="kd">struct</span><span class="p">{</span><span class="p">}</span>` + "\n" + `</pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -165,7 +165,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre class="chroma"><span class="kr">const</span> <span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span>` + "\n" + `</pre>`
+		want := `<pre class="chroma typescript"><span class="kr">const</span> <span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span>` + "\n" + `</pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -175,7 +175,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre class="chroma"><span class="p">{</span><span class="nt">&#34;foo&#34;</span><span class="p">:</span> <span class="mi">123</span><span class="p">}</span>` + "\n" + `</pre>`
+		want := `<pre class="chroma json"><span class="p">{</span><span class="nt">&#34;foo&#34;</span><span class="p">:</span> <span class="mi">123</span><span class="p">}</span>` + "\n" + `</pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
