@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -49,11 +48,11 @@ func init() {
 		}
 		if *tlsCertPath != "" || *tlsKeyPath != "" {
 			log.Printf("# TLS listener enabled")
-			tlsCert, err := ioutil.ReadFile(*tlsCertPath)
+			tlsCert, err := os.ReadFile(*tlsCertPath)
 			if err != nil {
 				return err
 			}
-			tlsKey, err := ioutil.ReadFile(*tlsKeyPath)
+			tlsKey, err := os.ReadFile(*tlsKeyPath)
 			if err != nil {
 				return err
 			}

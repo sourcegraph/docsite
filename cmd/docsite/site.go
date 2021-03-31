@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -35,7 +34,7 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 
 	paths := filepath.SplitList(*configPath)
 	for _, path := range paths {
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {
@@ -329,7 +328,7 @@ func zipFileSystemAtURL(url, dir string) (http.FileSystem, error) {
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, &os.PathError{Op: "Get", Path: url, Err: fmt.Errorf("HTTP response status code %d", resp.StatusCode)}
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +363,7 @@ func mapFromZipArchive(z *zip.Reader, dir string) (map[string]string, error) {
 		if err != nil {
 			return nil, errors.WithMessagef(err, "open %q", zf.Name)
 		}
-		data, err := ioutil.ReadAll(f)
+		data, err := io.ReadAll(f)
 		f.Close()
 		if err != nil {
 			return nil, errors.WithMessagef(err, "read %q", zf.Name)
