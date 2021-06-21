@@ -210,6 +210,76 @@ func TestRenderer(t *testing.T) {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
+	t.Run("month date", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`To be completed by 2021-06.`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p>To be completed by <time datetime="2021-06">2021-06</time>.</p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("full date", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`To be completed by 2021-06-20.`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p>To be completed by <time datetime="2021-06-20">2021-06-20</time>.</p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("full datetime", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`We meet up at 2021-06-20 10:00Z.`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p>We meet up at <time datetime="2021-06-20 10:00Z">2021-06-20 10:00Z</time>.</p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("fiscal year long", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`Plan for FY2022:`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p>Plan for <time datetime="2021-02-01">FY2022</time>:</p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("fiscal year short", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`Plan for FY22:`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p>Plan for <time datetime="2021-02-01">FY22</time>:</p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("fiscal quarter", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`Plan for FY22Q2:`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p>Plan for <time datetime="2021-05-01">FY22Q2</time>:</p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
+	t.Run("fiscal quarter only", func(t *testing.T) {
+		doc, err := Run(ctx, []byte(`Plan for FQ2:`), Options{Base: &url.URL{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `<p>Plan for <time datetime="05-01">FQ2</time>:</p>` + "\n"
+		if string(doc.HTML) != want {
+			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
+		}
+	})
 	t.Run("relative URL in Markdown links and images", func(t *testing.T) {
 		doc, err := Run(ctx, []byte("[a](b/c) ![a](b/c)"), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
