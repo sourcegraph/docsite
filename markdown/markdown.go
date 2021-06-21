@@ -344,7 +344,7 @@ func parseFiscalInterval(dateStr string) string {
 	}
 	fy, err := strconv.Atoi(fyStr)
 	if err != nil {
-		panic(err)
+		panic(err) // regex pattern guarantees fyStr contains only digits
 	}
 	year := fy - 1
 	return fmt.Sprintf("%d-%02d-01", year, month)
