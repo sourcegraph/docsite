@@ -245,7 +245,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="2021-02-01">FY2022</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="2021-02-01" data-is-start-of-interval="true">FY2022</time>:</p>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -255,7 +255,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="2021-02-01">FY22</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="2021-02-01" data-is-start-of-interval="true">FY22</time>:</p>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -265,7 +265,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="2021-05-01">FY22Q2</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="2021-05-01" data-is-start-of-interval="true">FY22Q2</time>:</p>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -275,7 +275,7 @@ func TestRenderer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="05-01">FQ2</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="05-01" data-is-start-of-interval="true">FQ2</time>:</p>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}

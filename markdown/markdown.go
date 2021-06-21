@@ -375,12 +375,14 @@ func rewriteDates(node *blackfriday.Node) []*blackfriday.Node {
 		n := blackfriday.NewNode(blackfriday.HTMLSpan)
 		dateStr := string(node.Literal[start:end])
 
-		dateTime := parseFiscalInterval(dateStr)
-		if dateTime == "" {
-			dateTime = dateStr
+		fiscalIntervalStart := parseFiscalInterval(dateStr)
+		if fiscalIntervalStart == "" {
+			n.Literal = []byte(fmt.Sprintf(`<time datetime="%s">%s</time>`, dateStr, dateStr))
+		} else {
+			// TODO expose end of interval as data attribute
+			n.Literal = []byte(fmt.Sprintf(`<time datetime="%s" data-is-start-of-interval="true">%s</time>`, fiscalIntervalStart, dateStr))
 		}
 
-		n.Literal = []byte(fmt.Sprintf(`<time datetime="%s">%s</time>`, dateTime, dateStr))
 		out = append(out, n)
 
 		i = end
