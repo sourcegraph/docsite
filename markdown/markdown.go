@@ -325,7 +325,7 @@ func parseFiscalInterval(dateStr string) string {
 		var err error
 		fq, err = strconv.Atoi(qStr)
 		if err != nil {
-			panic(err)
+			panic(err) // regex pattern guarantees qStr is a digit
 		}
 	}
 
