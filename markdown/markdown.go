@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -266,9 +267,130 @@ func (r *renderer) RenderNode(ctx context.Context, w io.Writer, node *blackfrida
 				}
 				return blackfriday.GoToNext
 			}
+			if newNodes := rewriteDates(node); len(newNodes) > 0 {
+				for _, n := range newNodes {
+					if status := r.Renderer.RenderNode(w, n, entering); status != blackfriday.GoToNext {
+						return status
+					}
+				}
+				return blackfriday.GoToNext
+			}
 		}
 	}
 	return r.Renderer.RenderNode(w, node, entering)
+}
+
+var datePattern = regexp.MustCompile(
+	// For examples, see:
+	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/time#valid_datetime_values
+	// https://developer.mozilla.org/en-US/docs/Web/HTML/Date_and_time_formats
+	`\b(` +
+		// Month string: MM-DD
+		`[0-1][1-9]-[0-3][1-9]|` +
+		// Week string: YYYY-WXX
+		`\d{4}-W\d?\d|` +
+		// Date or datetime string, with optional timezone: YYYY-MM-DD HH:MM:SS+HH:MM
+		`\d{4}-\d{2}(-\d{2}([ T]?[0-2]?\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:?\d\d)?)?)?|` +
+		// Time string, with optional timezone: HH:MM:SS+HH:MM+HH:MM
+		`(T?[0-2]?\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:?\d\d)?)|` +
+		// Fiscal year with optional quarter
+		`FY[' -]?(\d{2,4})(?:[' -]?F?Q([1-4]))?|` +
+		// Fiscal quarter only
+		`F?Q([1-4])` +
+		`)\b`)
+
+var fiscalIntervalPattern = regexp.MustCompile(
+	`^(?:` +
+		// Fiscal year
+		`FY[' -]?(\d{2,4})(?:[' -]?F?Q([1-4]))?|` +
+		// Fiscal quarter only
+		`F?Q([1-4])` +
+		`)$`)
+
+// parseFiscalInterval returns a YYYY-MM-DD or MM-DD date string for a reference to a fiscal quarter or fiscal year,
+// for the start of the fiscal quarter or fiscal year, respectively.
+func parseFiscalInterval(dateStr string) string {
+	matches := fiscalIntervalPattern.FindStringSubmatch(dateStr)
+	if len(matches) == 0 {
+		return ""
+	}
+	fyStr := matches[1]
+	qStr := matches[2]
+	if fyStr == "" {
+		qStr = matches[3]
+	}
+
+	fq := 1
+	if qStr != "" {
+		var err error
+		fq, err = strconv.Atoi(qStr)
+		if err != nil {
+			panic(err) // regex pattern guarantees qStr is a digit
+		}
+	}
+
+	// Start month of the quarter.
+	// The fiscal year starts on February 1st.
+	month := 2 + (fq-1)*3
+
+	if fyStr == "" {
+		// return MM-DD string
+		return fmt.Sprintf("%02d-01", month)
+	}
+
+	// return YYYY-MM-DD string
+	if len(fyStr) == 2 {
+		fyStr = "20" + fyStr
+	}
+	fy, err := strconv.Atoi(fyStr)
+	if err != nil {
+		panic(err) // regex pattern guarantees fyStr contains only digits
+	}
+	year := fy - 1
+	return fmt.Sprintf("%d-%02d-01", year, month)
+}
+
+// rewriteDates marks up strings that look like dates as `<time>` tags, with a machine-readable `datetime` attribute.
+// The client can use this to highlight them with CSS and show the date in the user's date format and timezone with JS.
+func rewriteDates(node *blackfriday.Node) []*blackfriday.Node {
+	matches := datePattern.FindAllIndex(node.Literal, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	out := make([]*blackfriday.Node, 0, 2*len(matches)+1)
+	appendTextNode := func(text []byte) {
+		n := blackfriday.NewNode(blackfriday.Text)
+		n.Literal = text
+		out = append(out, n)
+	}
+
+	i := 0
+	for _, match := range matches {
+		start, end := match[0], match[1]
+		if i != start {
+			appendTextNode(node.Literal[i:start])
+		}
+
+		n := blackfriday.NewNode(blackfriday.HTMLSpan)
+		dateStr := string(node.Literal[start:end])
+
+		fiscalIntervalStart := parseFiscalInterval(dateStr)
+		if fiscalIntervalStart == "" {
+			n.Literal = []byte(fmt.Sprintf(`<time datetime="%s">%s</time>`, dateStr, dateStr))
+		} else {
+			// TODO expose end of interval as data attribute
+			n.Literal = []byte(fmt.Sprintf(`<time datetime="%s" data-is-start-of-interval="true">%s</time>`, fiscalIntervalStart, dateStr))
+		}
+
+		out = append(out, n)
+
+		i = end
+	}
+	if i != len(node.Literal) {
+		appendTextNode(node.Literal[i:len(node.Literal)])
+	}
+	return out
 }
 
 var anchorDirectivePattern = regexp.MustCompile(`\{#[\w.-]+\}`)
