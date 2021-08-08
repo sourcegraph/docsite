@@ -117,7 +117,9 @@ The `docsite` tool requires site data to be available in any of the following wa
 
 ```shell
 docker build -t sourcegraph/docsite . && \
-docker push sourcegraph/docsite
+docker push sourcegraph/docsite && \
+docker tag sourcegraph/docsite gcr.io/sourcegraph-dogfood/docsite && \
+gcloud docker -- push gcr.io/sourcegraph-dogfood/docsite
 ```
 
 For internal Sourcegraph usage, then bump the deployed version by updating the SHA-256 image digest in all files that refer to `sourcegraph/docsite:latest@sha256:...`. Currently the 2 files that need to be updated are `configure/about-sourcegraph-com/{docs,about}-sourcegraph-com.Deployment.yaml`.
