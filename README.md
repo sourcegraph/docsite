@@ -42,16 +42,16 @@ ignoreDisconnectedPageCheck: true
 
 The site data describes the location of its templates, assets, and content. It is a JSON object with the following properties.
 
-- `content`: a VFS URL for the Markdown content files.
+- `content`: a file path or URL for the Markdown content files (or single Google Doc file).
 - `contentExcludePattern`: a regular expression specifying Markdown content files to exclude.
 - `baseURLPath`: the URL path where the site is available (such as `/` or `/help/`).
-- `templates`: a VFS URL for the [Go-style HTML templates](https://golang.org/pkg/html/template/) used to render site pages.
-- `assets`: a VFS URL for the static assets referred to in the HTML templates (such as CSS stylesheets).
+- `templates`: a file path or URL for the [Go-style HTML templates](https://golang.org/pkg/html/template/) used to render site pages.
+- `assets`: a file path or URL for the static assets referred to in the HTML templates (such as CSS stylesheets).
 - `assetsBaseURLPath`: the URL path where the assets are available (such as `/assets/`).
 - `redirects`: an object mapping URL paths (such as `/my/old/page`) to redirect destination URLs (such as `/my/new/page`).
 - `check` (optional): an object containing a single property `ignoreURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) of URLs to ignore when checking for broken URLs with `docsite check`.
 
-The possible values for VFS URLs are:
+The possible values for file paths or URLs are:
 
 - A **relative path to a local directory** (such as `../myrepo/doc`). The path is interpreted relative to the `docsite.json` file (if it exists) or the current working directory (if site data is specified in `DOCSITE_CONFIG`).
 - An **absolute URL to a Zip archive** (with `http` or `https` scheme). The URL can contain a fragment (such as `#mydir/`) to refer to a specific directory in the archive.
@@ -59,6 +59,7 @@ The possible values for VFS URLs are:
   If the URL fragment contains a path component `*` (such as `#*/templates/`), it matches the first top-level directory in the Zip file. (This is useful when using GitHub Zip archive URLs, such as `https://codeload.github.com/alice/myrepo/zip/myrev#*/templates/`. GitHub produces Zip archives with a top-level directory `$REPO-$REV`, such as `myrepo-myrev`, and using `#*/templates/` makes it easy to descend into that top-level directory without needing to duplicate the `myrev` in the URL fragment.)
 
   If the URL contains the literal string `$VERSION`, it is replaced by the user's requested version from the URL (e.g., the URL path `/@foo/bar` means the version is `foo`). ⚠️ If you are using GitHub `codeload.github.com` archive URLs, be sure your URL contains `refs/heads/$VERSION` (as in `https://codeload.github.com/owner/repo/zip/refs/heads/$VERSION`), not just `$VERSION`. This prevents someone from forking your repository, pushing a commit to their fork with unauthorized content, and then crafting a URL on your documentation site that would cause users to view that unauthorized content (which may contain malicious scripts or misleading information).
+- A **URL to a Google Doc** (starting with `https://docs.google.com/document/d/`). A Google Docs API key must be set in the `GOOGLE_DOCS_API_KEY` env var.
 
 ### Templates
 
@@ -110,6 +111,7 @@ The `docsite` tool requires site data to be available in any of the following wa
    ```
    DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/","defaultContentBranch":"main"}' docsite serve
    ```
+- Another example using a Google Docs URL:
 
 ## Development
 
