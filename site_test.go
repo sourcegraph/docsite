@@ -77,3 +77,38 @@ func TestSite_ResolveContentPage(t *testing.T) {
 		}
 	})
 }
+
+func TestSite_RenderContentPage(t *testing.T) {
+	t.Run("metadata is accessible to templates", func(t *testing.T) {
+		md := `---
+title: foobar
+---
+# Hello
+`
+		ctx := context.Background()
+		site := Site{
+			Templates: httpfs.New(mapfs.New(map[string]string{
+				"root.html":     "{{ .Content.Doc.Meta.Title }} Something",
+				"document.html": "",
+			})),
+			Content: versionedFileSystem{
+				"": httpfs.New(mapfs.New(map[string]string{
+					"index.md": md,
+				})),
+			},
+			Base: &url.URL{Path: "/"},
+		}
+
+		page, err := site.ResolveContentPage(ctx, "", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := site.RenderContentPage(&PageData{Content: page})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := "foobar Something"; string(b) != want {
+			t.Errorf("got data %q, want %q", b, want)
+		}
+	})
+}
