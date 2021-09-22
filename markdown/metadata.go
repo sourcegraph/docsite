@@ -10,13 +10,12 @@ import (
 type Metadata struct {
 	IgnoreDisconnectedPageCheck bool `yaml:"ignoreDisconnectedPageCheck"`
 
-	Title         string   `yaml:"title"`
-	Description   string   `yaml:"description"`
-	Category      string   `yaml:"category"`
-	CanonicalPath string   `yaml:"canonicalPath"`
-	ImagePath     string   `yaml:"imagePath"`
-	Type          string   `yaml:"type"`
-	Tags          []string `yaml:"tags"`
+	Title       string   `yaml:"title"`
+	Description string   `yaml:"description"`
+	Category    string   `yaml:"category"`
+	ImagePath   string   `yaml:"imagePath"`
+	Type        string   `yaml:"type"`
+	Tags        []string `yaml:"tags"`
 }
 
 func parseMetadata(input []byte) (meta Metadata, markdown []byte, err error) {
