@@ -13,7 +13,7 @@ type Metadata struct {
 	Title       string   `yaml:"title"`
 	Description string   `yaml:"description"`
 	Category    string   `yaml:"category"`
-	ImagePath   string   `yaml:"imagePath"`
+	ImageURL    string   `yaml:"imageURL"`
 	Type        string   `yaml:"type"`
 	Tags        []string `yaml:"tags"`
 }
