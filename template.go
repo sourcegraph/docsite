@@ -69,6 +69,17 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 		"subtract":   func(a, b int) int { return a - b },
 		"replace":    strings.Replace,
 		"trimPrefix": strings.TrimPrefix,
+		"hasRootURL": func() bool {
+			return s.Root != nil
+		},
+		"absURL": func(path string) string {
+			if s.Root != nil {
+				url := *s.Root
+				url.Path = path
+				return url.String()
+			}
+			return path
+		},
 	})
 	tmpl.Funcs(extraFuncs)
 
