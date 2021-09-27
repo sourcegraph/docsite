@@ -34,6 +34,11 @@ type Site struct {
 	// site is available.
 	Base *url.URL
 
+	// Root is the root URL that is only used for specific cases where an absolute URL is mandatory,
+	// such as for opengraph tags in the headers for example. It must include both the scheme and
+	// host.
+	Root *url.URL
+
 	// Templates is the file system containing the Go html/template templates used to render site
 	// pages
 	Templates http.FileSystem

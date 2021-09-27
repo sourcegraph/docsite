@@ -55,6 +55,7 @@ type docsiteConfig struct {
 	ContentExcludePattern string
 	DefaultContentBranch  string
 	BaseURLPath           string
+	RootURL               string
 	Templates             string
 	Assets                string
 	AssetsBaseURLPath     string
@@ -82,6 +83,19 @@ func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
 	}
 	if config.BaseURLPath != "" {
 		site.Base = &url.URL{Path: config.BaseURLPath}
+	}
+	if config.RootURL != "" {
+		var err error
+		site.Root, err = url.Parse(config.RootURL)
+		if err != nil {
+			return nil, err
+		}
+		if site.Root.Scheme == "" || site.Root.Host == "" {
+			return nil, fmt.Errorf(
+				"invalid RootURL, should either be blank or must include scheme and host, got %s instead",
+				config.RootURL,
+			)
+		}
 	}
 	if config.AssetsBaseURLPath != "" {
 		site.AssetsBase = &url.URL{Path: config.AssetsBaseURLPath}

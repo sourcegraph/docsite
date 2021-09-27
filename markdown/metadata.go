@@ -8,8 +8,14 @@ import (
 
 // Metadata is document metadata in the "front matter" of a Markdown document.
 type Metadata struct {
-	Title                       string `yaml:"title"`
-	IgnoreDisconnectedPageCheck bool   `yaml:"ignoreDisconnectedPageCheck"`
+	IgnoreDisconnectedPageCheck bool `yaml:"ignoreDisconnectedPageCheck"`
+
+	Title       string   `yaml:"title"`
+	Description string   `yaml:"description"`
+	Category    string   `yaml:"category"`
+	ImageURL    string   `yaml:"imageURL"`
+	Type        string   `yaml:"type"`
+	Tags        []string `yaml:"tags"`
 }
 
 func parseMetadata(input []byte) (meta Metadata, markdown []byte, err error) {
@@ -26,7 +32,9 @@ func parseMetadata(input []byte) (meta Metadata, markdown []byte, err error) {
 		return meta, input, nil // no metadata (because no ending delimiter)
 	}
 
-	err = yaml.Unmarshal(input[:len(startMarker)+end], &meta)
+	// UnmarshalStrict prevents to add incorrect metadata that would be really
+	// hard to detect, ex: "Description" instead of "description".
+	err = yaml.UnmarshalStrict(input[:len(startMarker)+end], &meta)
 	markdown = input[len(startMarker)+end+len(endMarker):]
 	return meta, markdown, err
 }

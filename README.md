@@ -45,6 +45,7 @@ The site data describes the location of its templates, assets, and content. It i
 - `content`: a VFS URL for the Markdown content files.
 - `contentExcludePattern`: a regular expression specifying Markdown content files to exclude.
 - `baseURLPath`: the URL path where the site is available (such as `/` or `/help/`).
+- `rootURL`: (optional) the root URL (scheme + host). Only used for rare cases where this is absolutely necessary, such as SEO tags fox example.
 - `templates`: a VFS URL for the [Go-style HTML templates](https://golang.org/pkg/html/template/) used to render site pages.
 - `assets`: a VFS URL for the static assets referred to in the HTML templates (such as CSS stylesheets).
 - `assetsBaseURLPath`: the URL path where the assets are available (such as `/assets/`).
