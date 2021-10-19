@@ -29,3 +29,16 @@ jobs:
         PACKAGE: ./cmd/docsite
         GOARCH: amd64
         GOOS: darwin
+  release-darwin-arm64:
+    name: Release darwin/arm64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Compile and release
+      uses: sqs/go-release.action@v1.1.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CGO_ENABLED: 0
+        PACKAGE: ./cmd/docsite
+        GOARCH: arm64
+        GOOS: darwin
