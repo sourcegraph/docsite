@@ -123,4 +123,6 @@ docker tag sourcegraph/docsite gcr.io/sourcegraph-dogfood/docsite && \
 gcloud docker -- push gcr.io/sourcegraph-dogfood/docsite
 ```
 
-For internal Sourcegraph usage, then bump the deployed version by updating the SHA-256 image digest in all files that refer to `sourcegraph/docsite:latest@sha256:...`. Currently the 2 files that need to be updated are `configure/about-sourcegraph-com/{docs,about}-sourcegraph-com.Deployment.yaml`.
+For internal Sourcegraph usage, bump the deployed version by updating the SHA-256 image digest in [all files that define `sourcegraph/docsite:latest@sha256`](https://sourcegraph.com/search?q=context:%40sourcegraph/all+%28NOT+repo:sourcegraph/kube-backup%29+sourcegraph/docsite:latest%40sha256:&patternType=literal).
+
+For development, bump the version number in [files that define `DOCSITE_VERSION`](https://sourcegraph.com/search?q=context:%40sourcegraph/all+%28NOT+repo:sourcegraph/kube-backup%29+DOCSITE_VERSION:&patternType=literal).
