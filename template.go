@@ -69,6 +69,7 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 		"subtract":   func(a, b int) int { return a - b },
 		"replace":    strings.Replace,
 		"trimPrefix": strings.TrimPrefix,
+		"contains":   strings.Contains,
 		"hasRootURL": func() bool {
 			return s.Root != nil
 		},
