@@ -28,6 +28,11 @@ func (s *Site) Search(ctx context.Context, contentVersion string, queryStr strin
 		return nil, err
 	}
 	for _, page := range pages {
+		if s.SkipIndexURLPattern != nil && s.SkipIndexURLPattern.MatchString(page.Path) {
+			// this URL matches a pattern that we do not want to index for search, so we will skip it
+			continue
+		}
+
 		ast := markdown.NewParser(nil).Parse(page.Data)
 		data, err := s.renderTextContent(ctx, page, ast, contentVersion)
 		if err != nil {

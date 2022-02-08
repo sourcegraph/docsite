@@ -56,6 +56,10 @@ type Site struct {
 
 	// CheckIgnoreURLPattern is a regexp matching URLs to ignore in the Check method.
 	CheckIgnoreURLPattern *regexp.Regexp
+
+	// SkipIndexURLPattern is a regexp matching URLs to ignore when searching. Any files that have a URL that match this
+	// pattern will be ignored from the search index.
+	SkipIndexURLPattern *regexp.Regexp
 }
 
 // newContentPage creates a new ContentPage in the site.
