@@ -63,6 +63,9 @@ type docsiteConfig struct {
 	Check                 struct {
 		IgnoreURLPattern string
 	}
+	Search struct {
+		SkipIndexURLPattern string
+	}
 }
 
 func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
@@ -99,6 +102,13 @@ func partialSiteFromConfig(config docsiteConfig) (*docsite.Site, error) {
 	}
 	if config.AssetsBaseURLPath != "" {
 		site.AssetsBase = &url.URL{Path: config.AssetsBaseURLPath}
+	}
+	if config.Search.SkipIndexURLPattern != "" {
+		var err error
+		site.SkipIndexURLPattern, err = regexp.Compile(config.Search.SkipIndexURLPattern)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for fromPath, toURLStr := range config.Redirects {
