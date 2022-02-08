@@ -51,6 +51,7 @@ The site data describes the location of its templates, assets, and content. It i
 - `assetsBaseURLPath`: the URL path where the assets are available (such as `/assets/`).
 - `redirects`: an object mapping URL paths (such as `/my/old/page`) to redirect destination URLs (such as `/my/new/page`).
 - `check` (optional): an object containing a single property `ignoreURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) of URLs to ignore when checking for broken URLs with `docsite check`.
+- `search` (optional): an object containing a single proprety `skipIndexURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) pattern that if matching any content file URL will remove that file from the search index.
 
 The possible values for VFS URLs are:
 
