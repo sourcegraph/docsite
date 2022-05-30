@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -101,9 +102,9 @@ func (s *Site) checkContentPage(page *contentPageCheckData) (problems []string) 
 			}
 
 			if node.Type == blackfriday.Link {
-				// Require that relative paths link to the actual .md file, so that browsing
-				// docs on the file system works.
-				if isPathOnly && u.Path != "" && !strings.HasSuffix(u.Path, ".md") {
+				// Require that relative paths link to the actual .md file, i.e not the "foo" folder in the case of
+				// of "foo/index.md", so that browsing docs on the file system works.
+				if isPathOnly && u.Path != "" && filepath.Ext(u.Path) == "" {
 					problems = append(problems, fmt.Sprintf("must link to .md file, not %s", u.Path))
 				}
 			}
