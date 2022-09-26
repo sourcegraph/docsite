@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 )
 
 func init() {
@@ -24,7 +25,7 @@ func init() {
 		}
 		if len(problems) > 0 {
 			for _, problem := range problems {
-				fmt.Println(problem)
+				fmt.Fprintln(os.Stderr, problem)
 			}
 			return fmt.Errorf("%d problems found", len(problems))
 		}
