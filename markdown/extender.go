@@ -273,7 +273,13 @@ func (r *nodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 func (r *nodeRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Link)
 	if entering {
-		_, _ = w.WriteString(" <a href=\"")
+		text := n.Text(source)
+
+		// Handle the leading whitespace
+		if i := bytes.IndexByte(text, '<'); i > 0 {
+			_, _ = w.Write(text[:i])
+		}
+		_, _ = w.WriteString(`<a href="`)
 		if !goldmarkhtml.IsDangerousURL(n.Destination) {
 			_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
 		}
