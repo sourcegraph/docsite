@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
 	"github.com/sourcegraph/docsite/markdown"
 )
 
@@ -63,9 +64,9 @@ type Site struct {
 }
 
 // newContentPage creates a new ContentPage in the site.
-func (s *Site) newContentPage(ctx context.Context, filePath string, data []byte, contentVersion string) (*ContentPage, error) {
+func (s *Site) newContentPage(filePath string, data []byte, contentVersion string) (*ContentPage, error) {
 	path := contentFilePathToPath(filePath)
-	doc, err := markdown.Run(ctx, data, s.markdownOptions(filePath, contentVersion))
+	doc, err := markdown.Run(data, s.markdownOptions(filePath, contentVersion))
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("run Markdown for %s", filePath))
 	}
@@ -121,7 +122,7 @@ func (s *Site) AllContentPages(ctx context.Context, contentVersion string) ([]*C
 		if err != nil {
 			return err
 		}
-		page, err := s.newContentPage(ctx, path, data, contentVersion)
+		page, err := s.newContentPage(path, data, contentVersion)
 		if err != nil {
 			return err
 		}
@@ -148,7 +149,7 @@ func (s *Site) ResolveContentPage(ctx context.Context, contentVersion, path stri
 	if err != nil {
 		return nil, err
 	}
-	return s.newContentPage(ctx, filePath, data, contentVersion)
+	return s.newContentPage(filePath, data, contentVersion)
 }
 
 func (s *Site) checkIsValidPath(path string) error {

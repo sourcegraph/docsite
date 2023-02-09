@@ -30,8 +30,8 @@ func TestExcerpt(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := excerpt(test.text, test.start, test.end, test.maxChars)
-			if got != test.want {
+			got := excerpt([]byte(test.text), test.start, test.end, test.maxChars)
+			if string(got) != test.want {
 				t.Errorf("got %q, want %q", got, test.want)
 			}
 		})

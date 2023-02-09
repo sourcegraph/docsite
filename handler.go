@@ -155,7 +155,7 @@ func (s *Site) Handler() http.Handler {
 				}
 
 				// Content page found.
-				data.Content, err = s.newContentPage(r.Context(), filePath, fileData, contentVersion)
+				data.Content, err = s.newContentPage(filePath, fileData, contentVersion)
 			}
 			if err != nil {
 				// Content page not found.

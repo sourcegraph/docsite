@@ -29,11 +29,11 @@ aa zz
 
 bb zz`,
 			wantQueryResults: map[string][]string{
-				"a":  []string{"#"},
-				"aa": []string{"#"},
-				"b":  []string{"#b"},
-				"bb": []string{"#b"},
-				"zz": []string{"#", "#b"},
+				"a":  {"#"},
+				"aa": {"#"},
+				"b":  {"#b"},
+				"bb": {"#b"},
+				"zz": {"#", "#b"},
 			},
 		},
 	}
@@ -41,7 +41,7 @@ bb zz`,
 		t.Run(name, func(t *testing.T) {
 			for queryStr, wantResults := range test.wantQueryResults {
 				t.Run(queryStr, func(t *testing.T) {
-					results, err := documentSectionResults(test.data, query.Parse(queryStr))
+					results, err := documentSectionResults([]byte(test.data), query.Parse(queryStr))
 					if err != nil {
 						t.Fatal(err)
 					}

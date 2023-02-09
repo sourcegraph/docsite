@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"github.com/yuin/goldmark/text"
 )
 
 func TestNewTree(t *testing.T) {
-	bfRenderer := NewBfRenderer()
-	ast := NewParser(bfRenderer).Parse([]byte(`# 1a
+	source := []byte(`# 1a
 ## 2a
 ### 3a
 #### 4
@@ -20,10 +21,9 @@ func TestNewTree(t *testing.T) {
 ##### 5c
 
 # 1b
-## 2b`))
-	SetHeadingIDs(ast)
-
-	tree := newTree(ast)
+## 2b`)
+	doc := New(Options{}).Parser().Parse(text.NewReader(source))
+	tree := newTree(doc, source)
 	want := []*SectionNode{
 		{
 			Title: "1a", URL: "#1a", Level: 1,
@@ -74,8 +74,9 @@ func TestNewTree(t *testing.T) {
 }
 
 func TestNewTree_link(t *testing.T) {
-	ast := NewParser(NewBfRenderer()).Parse([]byte(`# [A](B)`))
-	tree := newTree(ast)
+	source := []byte(`# [A](B)`)
+	doc := New(Options{}).Parser().Parse(text.NewReader(source))
+	tree := newTree(doc, source)
 	want := []*SectionNode{
 		{
 			Title: "A", URL: "B", Level: 1,

@@ -1,9 +1,8 @@
 package search
 
 import (
-	"context"
-
 	"github.com/pkg/errors"
+
 	"github.com/sourcegraph/docsite/internal/search/index"
 	"github.com/sourcegraph/docsite/internal/search/query"
 )
@@ -20,8 +19,8 @@ type DocumentResult struct {
 	SectionResults []SectionResult
 }
 
-func Search(ctx context.Context, query query.Query, index *index.Index) (*Result, error) {
-	result0, err := index.Search(ctx, query)
+func Search(query query.Query, index *index.Index) (*Result, error) {
+	result0, err := index.Search(query)
 	if err != nil {
 		return nil, err
 	}

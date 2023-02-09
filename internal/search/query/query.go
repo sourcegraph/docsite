@@ -34,14 +34,14 @@ func Parse(queryStr string) Query {
 }
 
 // Match reports whether the path or text contains at least 1 match of the query.
-func (q Query) Match(pathStr, text string) bool {
+func (q Query) Match(pathStr string, text []byte) bool {
 	name := path.Base(pathStr)
 
 	for _, token := range q.tokens {
 		if token.pattern.MatchString(name) {
 			return true
 		}
-		if token.pattern.MatchString(text) {
+		if token.pattern.Match(text) {
 			return true
 		}
 	}
@@ -51,7 +51,7 @@ func (q Query) Match(pathStr, text string) bool {
 const maxMatchesPerDoc = 50
 
 // Score scores the query match against the path and text.
-func (q Query) Score(pathStr, text string) float64 {
+func (q Query) Score(pathStr string, text []byte) float64 {
 	name := path.Base(pathStr)
 
 	tokensInName := 0
@@ -61,7 +61,7 @@ func (q Query) Score(pathStr, text string) float64 {
 		if token.pattern.MatchString(name) {
 			tokensInName++
 		}
-		count := len(token.pattern.FindAllStringIndex(text, maxMatchesPerDoc))
+		count := len(token.pattern.FindAllIndex(text, maxMatchesPerDoc))
 		if count > 0 {
 			tokensMatching++
 		}

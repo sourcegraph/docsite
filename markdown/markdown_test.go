@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/yuin/goldmark/text"
 )
 
 func check(t *testing.T, got, want Document) {
@@ -25,9 +27,8 @@ func check(t *testing.T, got, want Document) {
 }
 
 func TestRun(t *testing.T) {
-	ctx := context.Background()
 	t.Run("no metadata", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`# My title
+		doc, err := Run([]byte(`# My title
 Hello world github/linguist#1 **cool**, and #1!`), Options{})
 		if err != nil {
 			t.Fatal(err)
@@ -35,13 +36,12 @@ Hello world github/linguist#1 **cool**, and #1!`), Options{})
 		check(t, *doc, Document{
 			Title: "My title",
 			HTML: []byte(`<h1 id="my-title"><a name="my-title" class="anchor" href="#my-title" rel="nofollow" aria-hidden="true" title="#my-title"></a>My title</h1>
-
 <p>Hello world github/linguist#1 <strong>cool</strong>, and #1!</p>
 `),
 		})
 	})
 	t.Run("metadata", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`---
+		doc, err := Run([]byte(`---
 title: Metadata title
 ---
 
@@ -59,9 +59,8 @@ title: Metadata title
 }
 
 func TestRenderer(t *testing.T) {
-	ctx := context.Background()
 	t.Run("table with `|`", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("a  |  b\n---|---\nc  | `\\|`"), Options{})
+		doc, err := Run([]byte("a  |  b\n---|---\nc  | `\\|`"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -72,7 +71,6 @@ func TestRenderer(t *testing.T) {
 <th>b</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td>c</td>
@@ -86,31 +84,33 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("heading anchor link ignores special chars", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`## A ' B " C & D ? E`), Options{})
+		doc, err := Run([]byte(`## A ' B " C & D ? E`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h2 id="a-b-c-d-e"><a name="a-b-c-d-e" class="anchor" href="#a-b-c-d-e" rel="nofollow" aria-hidden="true" title="#a-b-c-d-e"></a>A &lsquo; B &ldquo; C &amp; D ? E</h2>` + "\n"
+		want := `<h2 id="a-b-c-d-e"><a name="a-b-c-d-e" class="anchor" href="#a-b-c-d-e" rel="nofollow" aria-hidden="true" title="#a-b-c-d-e"></a>A ' B " C & D ? E</h2>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("heading anchor link ignores markup", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`## [A](B) C`), Options{})
+		doc, err := Run([]byte(`## [A](B) C`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h2 id="a-c"><a name="a-c" class="anchor" href="#a-c" rel="nofollow" aria-hidden="true" title="#a-c"></a><a href="B">A</a> C</h2>` + "\n"
+		want := `<h2 id="a-b-c"><a name="a-b-c" class="anchor" href="#a-b-c" rel="nofollow" aria-hidden="true" title="#a-b-c"></a><a href="B">A</a> C</h2>` + "\n"
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
-	t.Run("disambiguates heading anchor", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("# A\n\n# A"), Options{})
+	t.Run("disambiguate heading anchor", func(t *testing.T) {
+		doc, err := Run([]byte("# A\n\n# A"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h1 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true" title="#a"></a>A</h1>` + "\n\n" + `<h1 id="a-1"><a name="a-1" class="anchor" href="#a-1" rel="nofollow" aria-hidden="true" title="#a-1"></a>A</h1>` + "\n"
+		want := `<h1 id="a"><a name="a" class="anchor" href="#a" rel="nofollow" aria-hidden="true" title="#a"></a>A</h1>
+<h1 id="a-1"><a name="a-1" class="anchor" href="#a-1" rel="nofollow" aria-hidden="true" title="#a-1"></a>A</h1>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
@@ -130,7 +130,7 @@ func TestRenderer(t *testing.T) {
 	})
 	t.Run("explicit anchors", func(t *testing.T) {
 		t.Run("heading", func(t *testing.T) {
-			doc, err := Run(ctx, []byte(`# a {#b}`), Options{})
+			doc, err := Run([]byte(`# a {#b}`), Options{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -140,7 +140,7 @@ func TestRenderer(t *testing.T) {
 			}
 		})
 		t.Run("inline", func(t *testing.T) {
-			doc, err := Run(ctx, []byte(`a {#b} c`), Options{})
+			doc, err := Run([]byte(`a {#b} c`), Options{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -151,147 +151,160 @@ func TestRenderer(t *testing.T) {
 		})
 	})
 	t.Run("syntax highlighting go", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("```go\nvar foo struct{}\n```"), Options{})
+		doc, err := Run([]byte("```go\nvar foo struct{}\n```"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre class="chroma go"><span class="kd">var</span> <span class="nx">foo</span> <span class="kd">struct</span><span class="p">{</span><span class="p">}</span>` + "\n" + `</pre>`
+		want := `<pre class="chroma go"><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">foo</span> <span class="kd">struct</span><span class="p">{}</span>
+</span></span></pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("syntax highlighting typescript", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("```typescript\nconst foo = 'bar'\n```"), Options{})
+		doc, err := Run([]byte("```typescript\nconst foo = 'bar'\n```"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre class="chroma typescript"><span class="kr">const</span> <span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span>` + "\n" + `</pre>`
+		want := `<pre class="chroma typescript"><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span>
+</span></span></pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("syntax highlighting json", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("```json\n{\"foo\": 123}\n```"), Options{})
+		doc, err := Run([]byte("```json\n{\"foo\": 123}\n```"), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<pre class="chroma json"><span class="p">{</span><span class="nt">&#34;foo&#34;</span><span class="p">:</span> <span class="mi">123</span><span class="p">}</span>` + "\n" + `</pre>`
+		want := `<pre class="chroma json"><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;foo&#34;</span><span class="p">:</span> <span class="mi">123</span><span class="p">}</span>
+</span></span></pre>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("heading consisting only of link uses link URL", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`## [A](B)`), Options{})
+		doc, err := Run([]byte(`## [A](B)`), Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<h2 id="a"><a name="a" aria-hidden="true"></a><a href="B">A</a></h2>` + "\n"
+		want := `<h2 id="a-b"><a name="a-b" aria-hidden="true"></a><a href="B">A</a></h2>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("HTML", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`<kbd>b</kbd>`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`<kbd>b</kbd>`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p><kbd>b</kbd></p>` + "\n"
+		want := `<p><kbd>b</kbd></p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("HTML div", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`<div class="foo">b</div>`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`<div class="foo">b</div>`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p><div class="foo">b</div></p>` + "\n"
+		want := `<div class="foo">b</div>`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("month date", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`To be completed by 2021-06.`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`To be completed by 2021-06.`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>To be completed by <time datetime="2021-06">2021-06</time>.</p>` + "\n"
+		want := `<p>To be completed by 2021-06.</p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("full date", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`To be completed by 2021-06-20.`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`To be completed by 2021-06-20.`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>To be completed by <time datetime="2021-06-20">2021-06-20</time>.</p>` + "\n"
+		want := `<p>To be completed by 2021-06-20.</p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("full datetime", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`We meet up at 2021-06-20 10:00Z.`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`We meet up at 2021-06-20 10:00Z.`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>We meet up at <time datetime="2021-06-20 10:00Z">2021-06-20 10:00Z</time>.</p>` + "\n"
+		want := `<p>We meet up at 2021-06-20 10:00Z.</p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("fiscal year long", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`Plan for FY2022:`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`Plan for FY2022:`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="2021-02-01" data-is-start-of-interval="true">FY2022</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="2021-02-01" data-is-start-of-interval="true">FY2022</time>:</p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("fiscal year short", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`Plan for FY22:`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`Plan for FY22:`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="2021-02-01" data-is-start-of-interval="true">FY22</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="2021-02-01" data-is-start-of-interval="true">FY22</time>:</p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("fiscal quarter", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`Plan for FY22Q2:`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`Plan for FY22Q2:`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="2021-05-01" data-is-start-of-interval="true">FY22Q2</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="2021-05-01" data-is-start-of-interval="true">FY22Q2</time>:</p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("fiscal quarter only", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`Plan for FQ2:`), Options{Base: &url.URL{}})
+		doc, err := Run([]byte(`Plan for FQ2:`), Options{Base: &url.URL{}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p>Plan for <time datetime="05-01" data-is-start-of-interval="true">FQ2</time>:</p>` + "\n"
+		want := `<p>Plan for <time datetime="05-01" data-is-start-of-interval="true">FQ2</time>:</p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 		}
 	})
 	t.Run("relative URL in Markdown links and images", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("[a](b/c) ![a](b/c)"), Options{Base: &url.URL{Path: "/d/"}})
+		doc, err := Run([]byte("[a](b/c) ![a](b/c)"), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := `<p><a href="/d/b/c">a</a> <img src="/d/b/c" alt="a" /></p>` + "\n"
+		want := `<p><a href="/d/b/c">a</a> <img src="/d/b/c" alt="a"></p>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("got %q, want %q", string(doc.HTML), want)
 		}
 	})
 	t.Run("relative URL in HTML <a> and <img>", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`<a href="b/c">z</a><img src="b/c">`), Options{Base: &url.URL{Path: "/d/"}})
+		doc, err := Run([]byte(`<a href="b/c">z</a><img src="b/c">`), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -301,7 +314,7 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("anchor link", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("[a](#b) <a href='#c'>d</a>"), Options{Base: &url.URL{Path: "/d/e"}})
+		doc, err := Run([]byte("[a](#b) <a href='#c'>d</a>"), Options{Base: &url.URL{Path: "/d/e"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -311,18 +324,18 @@ func TestRenderer(t *testing.T) {
 		}
 	})
 	t.Run("inline javascript script tag", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("<script>'a'</script>\n\na"), Options{Base: &url.URL{Path: "/"}})
+		doc, err := Run([]byte("<script>'a'</script>\n\na"), Options{Base: &url.URL{Path: "/"}})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := "<script>'a'</script>\n\n<p>a</p>\n"
+		want := "<script>'a'</script>\n<p>a</p>\n"
 		if string(doc.HTML) != want {
 			t.Errorf("got %q, want %q", string(doc.HTML), want)
 		}
 	})
 	t.Run("list", func(t *testing.T) {
 		t.Run("bare items", func(t *testing.T) {
-			doc, err := Run(ctx, []byte(`
+			doc, err := Run([]byte(`
 - a
 - b
 - c`), Options{})
@@ -341,7 +354,7 @@ func TestRenderer(t *testing.T) {
 		t.Run("nested items", func(t *testing.T) {
 			// Not sure why a single extra blank line causes all list items to be wrapped in <p>,
 			// but this is how GitHub works, too.
-			doc, err := Run(ctx, []byte(`
+			doc, err := Run([]byte(`
 - a
 
 - b
@@ -350,31 +363,37 @@ func TestRenderer(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := `<ul>
-<li><p>a</p></li>
-
-<li><p>b</p></li>
-
-<li><p>c</p></li>
-</ul>` + "\n"
+<li>
+<p>a</p>
+</li>
+<li>
+<p>b</p>
+</li>
+<li>
+<p>c</p>
+</li>
+</ul>
+`
 			if string(doc.HTML) != want {
 				t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 			}
 		})
 	})
 	t.Run("empty blockquote", func(t *testing.T) {
-		doc, err := Run(ctx, []byte("> `a`"), Options{Base: &url.URL{Path: "/d/"}})
+		doc, err := Run([]byte("> `a`"), Options{Base: &url.URL{Path: "/d/"}})
 		if err != nil {
 			t.Fatal(err)
 		}
 		want := `<blockquote>
 <p><code>a</code></p>
-</blockquote>` + "\n"
+</blockquote>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("got %q, want %q", string(doc.HTML), want)
 		}
 	})
 	t.Run("alerts", func(t *testing.T) {
-		doc, err := Run(ctx, []byte(`> NOTE: **a**
+		doc, err := Run([]byte(`> NOTE: **a**
 
 x
 
@@ -385,19 +404,18 @@ x
 		want := `<aside class="note">
 <p>NOTE: <strong>a</strong></p>
 </aside>
-
 <p>x</p>
 <aside class="warning">
-
 <p>WARNING: <strong>b</strong></p>
-</aside>` + "\n"
+</aside>
+`
 		if string(doc.HTML) != want {
 			t.Errorf("got %q, want %q", string(doc.HTML), want)
 		}
 	})
 	t.Run("markdown-func", func(t *testing.T) {
 		t.Run("start-end tag", func(t *testing.T) {
-			doc, err := Run(ctx, []byte(`<div markdown-func=x x:a=b>z</div>
+			doc, err := Run([]byte(`<div markdown-func=x x:a=b>z</div>
 `), Options{
 				Base: &url.URL{},
 				Funcs: FuncMap{
@@ -417,7 +435,7 @@ x
 			}
 		})
 		t.Run("self-closing tag", func(t *testing.T) {
-			doc, err := Run(ctx, []byte(`<div markdown-func=x x:a=b />`), Options{
+			doc, err := Run([]byte(`<div markdown-func=x x:a=b />`), Options{
 				Base: &url.URL{},
 				Funcs: FuncMap{
 					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
@@ -429,13 +447,13 @@ x
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := `<p>{"a":"b"}</p>` + "\n"
+			want := `{"a":"b"}`
 			if string(doc.HTML) != want {
 				t.Errorf("\ngot:  %s\nwant: %s", string(doc.HTML), want)
 			}
 		})
 		t.Run("never closed", func(t *testing.T) {
-			_, err := Run(ctx, []byte(`<div markdown-func=x x:a=b>z
+			_, err := Run([]byte(`<div markdown-func=x x:a=b>z
 `), Options{
 				Base: &url.URL{},
 				Funcs: FuncMap{
@@ -444,12 +462,12 @@ x
 					},
 				},
 			})
-			if want := "tag for Markdown function \"x\" is never closed"; err == nil || err.Error() != want {
+			if want := "render: tag for Markdown function \"x\" is never closed"; err == nil || err.Error() != want {
 				t.Fatalf("got error %v, want %q", err, want)
 			}
 		})
 		t.Run("error", func(t *testing.T) {
-			_, err := Run(ctx, []byte(`<div markdown-func=x />`), Options{
+			_, err := Run([]byte(`<div markdown-func=x />`), Options{
 				Base: &url.URL{},
 				Funcs: FuncMap{
 					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
@@ -457,12 +475,12 @@ x
 					},
 				},
 			})
-			if want := "error in Markdown function \"x\": z"; err == nil || err.Error() != want {
+			if want := "render: error in Markdown function \"x\": z"; err == nil || err.Error() != want {
 				t.Fatalf("got error %v, want %q", err, want)
 			}
 		})
 		t.Run("panic", func(t *testing.T) {
-			_, err := Run(ctx, []byte(`<div markdown-func=x />`), Options{
+			_, err := Run([]byte(`<div markdown-func=x />`), Options{
 				Base: &url.URL{},
 				Funcs: FuncMap{
 					"x": func(ctx context.Context, info FuncInfo, args map[string]string) (string, error) {
@@ -470,49 +488,17 @@ x
 					},
 				},
 			})
-			if want := "error in Markdown function \"x\": z"; err == nil || err.Error() != want {
+			if want := "render: error in Markdown function \"x\": z"; err == nil || err.Error() != want {
 				t.Fatalf("got error %v, want %q", err, want)
 			}
 		})
 		t.Run("nonexistent", func(t *testing.T) {
-			_, err := Run(ctx, []byte(`<div markdown-func=x>b</div>`), Options{Base: &url.URL{}})
+			_, err := Run([]byte(`<div markdown-func=x>b</div>`), Options{Base: &url.URL{}})
 			if want := "Markdown function \"x\" is not defined"; err == nil || !strings.Contains(err.Error(), want) {
 				t.Fatalf("got error %v, want %q", err, want)
 			}
 		})
 	})
-}
-
-func TestJoinBytesAsText(t *testing.T) {
-	tests := map[string]struct {
-		parts []string
-		want  string
-	}{
-		"adjacent words": {
-			parts: []string{"a", "b"},
-			want:  "a b",
-		},
-		"adjacent sentences": {
-			parts: []string{"a.", "b."},
-			want:  "a. b.",
-		},
-		"end of sentence": {
-			parts: []string{"a", ". b."},
-			want:  "a. b.",
-		},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			parts := make([][]byte, len(test.parts))
-			for i, part := range test.parts {
-				parts[i] = []byte(part)
-			}
-			got := joinBytesAsText(parts)
-			if string(got) != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
-		})
-	}
 }
 
 func TestGetTitle(t *testing.T) {
@@ -526,8 +512,8 @@ func TestGetTitle(t *testing.T) {
 	}
 	for input, wantTitle := range tests {
 		t.Run(input, func(t *testing.T) {
-			ast := NewParser(nil).Parse([]byte(input))
-			title := GetTitle(ast)
+			mdAST := New(Options{}).Parser().Parse(text.NewReader([]byte(input)))
+			title := GetTitle(mdAST, []byte(input))
 			if title != wantTitle {
 				t.Errorf("got title %q, want %q", title, wantTitle)
 			}

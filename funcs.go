@@ -11,9 +11,10 @@ import (
 
 	"github.com/mozillazg/go-slugify"
 	"github.com/pkg/errors"
-	"github.com/sourcegraph/docsite/markdown"
 	"github.com/sourcegraph/go-jsonschema/jsonschema"
 	"github.com/sourcegraph/jsonschemadoc"
+
+	"github.com/sourcegraph/docsite/markdown"
 )
 
 // createMarkdownFuncs creates the standard set of Markdown functions expected by documentation
@@ -81,6 +82,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 	<code>{{.Title}}</code>
 </h2>
 <div class="json-schema-doc pre-wrap">
+
 {{.Schema}}
 </div>`
 
@@ -99,7 +101,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 				return "", err
 			}
 
-			doc, err := markdown.Run(ctx, []byte(output.String()), markdown.Options{})
+			doc, err := markdown.Run(output.Bytes(), markdown.Options{})
 			if err != nil {
 				return "", err
 			}

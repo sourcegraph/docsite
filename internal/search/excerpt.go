@@ -1,10 +1,10 @@
 package search
 
 import (
-	"strings"
+	"bytes"
 )
 
-func excerpt(text string, start, end, maxChars int) string {
+func excerpt(text []byte, start, end, maxChars int) []byte {
 	origStart := start
 	origEnd := end
 
@@ -20,7 +20,7 @@ func excerpt(text string, start, end, maxChars int) string {
 
 	const breakChars = ".\n"
 
-	if index := strings.IndexAny(text[start:origStart], breakChars); index != -1 {
+	if index := bytes.IndexAny(text[start:origStart], breakChars); index != -1 {
 		start += index + 1
 		end += index
 		if end > len(text) {
@@ -28,12 +28,12 @@ func excerpt(text string, start, end, maxChars int) string {
 		}
 	}
 
-	if index := strings.LastIndexAny(text[origEnd:end], breakChars); index != -1 {
+	if index := bytes.LastIndexAny(text[origEnd:end], breakChars); index != -1 {
 		end = origEnd + index + 1
 		if end > len(text) {
 			end = len(text)
 		}
 	}
 
-	return strings.TrimSpace(text[start:end])
+	return bytes.TrimSpace(text[start:end])
 }

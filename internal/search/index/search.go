@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"sort"
 
 	"github.com/sourcegraph/docsite/internal/search/query"
@@ -20,7 +19,7 @@ type DocumentResult struct {
 }
 
 // Search performs a search against the index.
-func (i *Index) Search(ctx context.Context, query query.Query) (*Result, error) {
+func (i *Index) Search(query query.Query) (*Result, error) {
 	var documentResults []DocumentResult
 	for _, doc := range i.index {
 		if query.Match(doc.URL, doc.Data) {
