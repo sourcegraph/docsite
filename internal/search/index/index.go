@@ -12,7 +12,7 @@ type Document struct {
 	ID    DocID  // the document ID
 	Title string // the document title
 	URL   string // the document URL
-	Data  string // the text content
+	Data  []byte // the text content
 }
 
 // Index is a search index.

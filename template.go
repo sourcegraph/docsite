@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
 	"github.com/sourcegraph/docsite/markdown"
 )
 
@@ -60,7 +61,7 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 			if err != nil {
 				return "", err
 			}
-			doc, err := markdown.Run(context.Background(), data, s.markdownOptions(path, version))
+			doc, err := markdown.Run(data, s.markdownOptions(path, version))
 			if err != nil {
 				return "", err
 			}
