@@ -83,7 +83,7 @@ func (s *Site) Handler() http.Handler {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		setCacheControl(w, r, cacheMaxAgeShort)
 		if r.Method == "GET" {
-			w.Write(respData)
+			_, _ = w.Write(respData)
 		}
 	}))
 
@@ -204,7 +204,7 @@ func (s *Site) Handler() http.Handler {
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if r.Method == "GET" {
-			w.Write(respData)
+			_, _ = w.Write(respData)
 		}
 	})))
 
