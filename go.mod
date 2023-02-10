@@ -4,7 +4,6 @@ require (
 	github.com/alecthomas/chroma v0.10.0
 	github.com/mozillazg/go-slugify v0.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
 	github.com/sourcegraph/go-jsonschema v0.0.0-20191016093751-6a4f2b621f5d
 	github.com/sourcegraph/jsonschemadoc v0.0.0-20190214000648-1850b818f08c
