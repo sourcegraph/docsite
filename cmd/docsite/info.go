@@ -10,7 +10,7 @@ func init() {
 	flagSet := flag.NewFlagSet("info", flag.ExitOnError)
 
 	handler := func(args []string) error {
-		flagSet.Parse(args)
+		_ = flagSet.Parse(args)
 		_, conf, err := siteFromFlags()
 		if err != nil {
 			return err

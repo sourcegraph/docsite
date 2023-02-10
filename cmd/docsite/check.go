@@ -14,7 +14,7 @@ func init() {
 	)
 
 	handler := func(args []string) error {
-		flagSet.Parse(args)
+		_ = flagSet.Parse(args)
 		site, _, err := siteFromFlags()
 		if err != nil {
 			return err
@@ -25,7 +25,7 @@ func init() {
 		}
 		if len(problems) > 0 {
 			for _, problem := range problems {
-				fmt.Fprintln(os.Stderr, problem)
+				_, _ = fmt.Fprintln(os.Stderr, problem)
 			}
 			return fmt.Errorf("%d problems found", len(problems))
 		}

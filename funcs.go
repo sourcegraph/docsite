@@ -108,10 +108,8 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 			return string(doc.HTML), nil
 		},
 	}
-	if testMarkdownFuncs != nil {
-		for name, f := range testMarkdownFuncs {
-			m[name] = f
-		}
+	for name, f := range testMarkdownFuncs {
+		m[name] = f
 	}
 	return m
 }

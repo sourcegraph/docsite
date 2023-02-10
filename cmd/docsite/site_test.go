@@ -16,13 +16,13 @@ func TestMapFromZipArchive(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		f1.Write([]byte("1"))
+		_, _ = f1.Write([]byte("1"))
 		f2, err := zw.Create("c/2")
 		if err != nil {
 			t.Fatal(err)
 		}
-		f2.Write([]byte("2"))
-		zw.Close()
+		_, _ = f2.Write([]byte("2"))
+		_ = zw.Close()
 
 		zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 		if err != nil {
@@ -46,13 +46,13 @@ func TestMapFromZipArchive(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		f1.Write([]byte("../c/target"))
+		_, _ = f1.Write([]byte("../c/target"))
 		f2, err := zw.Create("c/target")
 		if err != nil {
 			t.Fatal(err)
 		}
-		f2.Write([]byte("x"))
-		zw.Close()
+		_, _ = f2.Write([]byte("x"))
+		_ = zw.Close()
 
 		zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 		if err != nil {
@@ -76,8 +76,8 @@ func TestMapFromZipArchive(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		f1.Write([]byte("../doesnotexist"))
-		zw.Close()
+		_, _ = f1.Write([]byte("../doesnotexist"))
+		_ = zw.Close()
 
 		zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 		if err != nil {

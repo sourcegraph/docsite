@@ -21,9 +21,10 @@ import (
 	"unicode"
 
 	"github.com/pkg/errors"
-	"github.com/sourcegraph/docsite"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
+
+	"github.com/sourcegraph/docsite"
 )
 
 func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
@@ -375,7 +376,6 @@ func zipFileSystemAtURL(url, dir string) (http.FileSystem, error) {
 	if err != nil {
 		return nil, err
 	}
-	body = nil
 	z = nil
 
 	return httpfs.New(mapfs.New(m)), nil

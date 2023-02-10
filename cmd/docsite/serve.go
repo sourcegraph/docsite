@@ -19,7 +19,7 @@ func init() {
 	)
 
 	handler := func(args []string) error {
-		flagSet.Parse(args)
+		_ = flagSet.Parse(args)
 
 		host, port, err := net.SplitHostPort(*httpAddr)
 		if err != nil {

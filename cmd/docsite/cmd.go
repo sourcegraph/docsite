@@ -69,7 +69,7 @@ func (c commander) run(flagSet *flag.FlagSet, cmdName string, usage *template.Te
 		}
 	}
 	if !flagSet.Parsed() {
-		flagSet.Parse(args)
+		_ = flagSet.Parse(args)
 	}
 
 	// Print usage if the command is "help".
@@ -82,21 +82,21 @@ func (c commander) run(flagSet *flag.FlagSet, cmdName string, usage *template.Te
 	for _, cmd_ := range c {
 		cmd := cmd_
 		cmd.FlagSet.Usage = func() {
-			fmt.Fprintln(commandLine.Output(), "Usage:")
-			fmt.Fprintln(commandLine.Output())
-			fmt.Fprintf(commandLine.Output(), "  %s [options] %s", cmdName, cmd.FlagSet.Name())
+			_, _ = fmt.Fprintln(commandLine.Output(), "Usage:")
+			_, _ = fmt.Fprintln(commandLine.Output())
+			_, _ = fmt.Fprintf(commandLine.Output(), "  %s [options] %s", cmdName, cmd.FlagSet.Name())
 			if hasFlags(cmd.FlagSet) {
-				fmt.Fprint(commandLine.Output(), " [command options]")
+				_, _ = fmt.Fprint(commandLine.Output(), " [command options]")
 			}
-			fmt.Fprintln(commandLine.Output())
+			_, _ = fmt.Fprintln(commandLine.Output())
 			if cmd.LongDescription != "" {
-				fmt.Fprintln(commandLine.Output())
-				fmt.Fprintln(commandLine.Output(), cmd.LongDescription)
-				fmt.Fprintln(commandLine.Output())
+				_, _ = fmt.Fprintln(commandLine.Output())
+				_, _ = fmt.Fprintln(commandLine.Output(), cmd.LongDescription)
+				_, _ = fmt.Fprintln(commandLine.Output())
 			}
 			if hasFlags(cmd.FlagSet) {
-				fmt.Fprintln(commandLine.Output(), "The command options are:")
-				fmt.Fprintln(commandLine.Output())
+				_, _ = fmt.Fprintln(commandLine.Output(), "The command options are:")
+				_, _ = fmt.Fprintln(commandLine.Output())
 				cmd.FlagSet.PrintDefaults()
 			}
 		}
