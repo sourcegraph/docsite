@@ -172,6 +172,9 @@ func (r *nodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 			return ast.WalkContinue, nil
 		}
 
+		// We always need a line break because each ast.Text node represents a line
+		defer func() { _ = w.WriteByte('\n') }()
+
 		n := node.(*ast.Text)
 		text := n.Text(source)
 

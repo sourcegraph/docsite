@@ -71,7 +71,6 @@ func New(opts Options) goldmark.Markdown {
 			parser.WithAttribute(),
 		),
 		goldmark.WithRendererOptions(
-			goldmarkhtml.WithHardWraps(),
 			goldmarkhtml.WithXHTML(),
 			goldmarkhtml.WithUnsafe(),
 		),
