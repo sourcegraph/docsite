@@ -117,16 +117,23 @@ The `docsite` tool requires site data to be available in any of the following wa
 
 ### Release a new version
 
-```shell
-docker build -t sourcegraph/docsite . && \
-docker push sourcegraph/docsite && \
-docker tag sourcegraph/docsite gcr.io/sourcegraph-dogfood/docsite && \
-gcloud docker -- push gcr.io/sourcegraph-dogfood/docsite
-```
+1. Build the Docker image for `linux/amd64`:
+   ```sh
+   docker build -t sourcegraph/docsite .
 
-For internal Sourcegraph usage:
-
-1. Bump the deployed version by updating the SHA-256 image digest in [all files that define `sourcegraph/docsite:latest@sha256`](https://sourcegraph.sourcegraph.com/search?q=context:global+repo:%5Egithub.com/sourcegraph/*+%28NOT+repo:sourcegraph/kube-backup%29+index.docker.io/sourcegraph/docsite:v.*%40sha256:.*&patternType=regexp&sm=1&groupBy=path).
-2. Wait for the [Buildkite build to pass](https://buildkite.com/sourcegraph/deploy-sourcegraph-cloud/builds?branch=release).
-
-For development, bump the version number in [files that define `DOCSITE_VERSION`](https://sourcegraph.com/search?q=context:global+repo:%5Egithub.com/sourcegraph/*+%28NOT+repo:sourcegraph/kube-backup%29+DOCSITE_VERSION:&patternType=literal).
+   # Use buildx if you're on M1
+   docker buildx build --platform linux/amd64 -t sourcegraph/docsite .
+   ```
+1. Tag and push the image to Docker Hub and GCR:
+   ```sh
+   export VERSION= # e.g. v1.9.1
+   docker tag sourcegraph/docsite sourcegraph/docsite:$VERSION
+   docker tag sourcegraph/docsite gcr.io/sourcegraph-dogfood/docsite
+   docker push sourcegraph/docsite
+   docker push sourcegraph/docsite:$VERSION
+   docker push gcr.io/sourcegraph-dogfood/docsite
+   ```
+1. For internal Sourcegraph usage:
+   1. Bump the deployed version by updating the SHA-256 image digest in [all files that define `sourcegraph/docsite:latest@sha256`](https://sourcegraph.sourcegraph.com/search?q=context:global+repo:%5Egithub.com/sourcegraph/*+%28NOT+repo:sourcegraph/kube-backup%29+index.docker.io/sourcegraph/docsite:v.*%40sha256:.*&patternType=regexp&sm=1&groupBy=path).
+   1. Once the pull request is merged, wait for the [Buildkite build to pass](https://buildkite.com/sourcegraph/deploy-sourcegraph-cloud/builds?branch=release).
+1. For development, bump the version number in [files that define `DOCSITE_VERSION`](https://sourcegraph.com/search?q=context:global+repo:%5Egithub.com/sourcegraph/*+%28NOT+repo:sourcegraph/kube-backup%29+DOCSITE_VERSION:&patternType=literal).
