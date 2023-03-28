@@ -134,8 +134,7 @@ func TestRenderer(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := `<h1 id="b"><a name="b" class="anchor" href="#b" rel="nofollow" aria-hidden="true" title="#b"></a>a
-</h1>
+			want := `<h1 id="b"><a name="b" class="anchor" href="#b" rel="nofollow" aria-hidden="true" title="#b"></a>a</h1>
 `
 			if string(doc.HTML) != want {
 				t.Errorf("got %q, want %q", string(doc.HTML), want)

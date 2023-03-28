@@ -173,10 +173,12 @@ func (r *nodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 		}
 
 		n := node.(*ast.Text)
+		if n.SoftLineBreak() {
+			defer func() { _ = w.WriteByte('\n') }()
+		}
+
 		text := n.Text(source)
 		if len(text) == 0 {
-			// Simply write a line break if there is no text in the node, otherwise, soft break lines are sticking.
-			_ = w.WriteByte('\n')
 			return ast.WalkContinue, nil
 		}
 
