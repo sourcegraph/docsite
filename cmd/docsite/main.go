@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,5 +44,6 @@ var (
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("")
+	fmt.Println("Hello, World!")
 	commands.run(commandLine, "docsite", usage, os.Args[1:])
 }

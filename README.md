@@ -79,13 +79,13 @@ See the following examples:
 
 In addition to the `redirects` property in site data, you can also specify redirects in a text file named `redirects` at the top level of the `assets` VFS. The format is as follows:
 
-``` text
+```text
 FROM-PATH TO-URL STATUS-CODE
 ```
 
 For example:
 
-``` text
+```text
 # Comments are allowed
 /my/old/page /my/new/page 308
 /another/page https://example.com/page 308
@@ -96,34 +96,36 @@ For example:
 The `docsite` tool requires site data to be available in any of the following ways:
 
 - A `docsite.json` file (or other file specified in the `-config` flag's search paths), as in the following example:
-   ```json
-   {
-     "content": "../sourcegraph/doc",
-     "baseURLPath": "/",
-     "templates": "templates",
-     "assets": "assets",
-     "assetsBaseURLPath": "/assets/",
-     "check": {
-       "ignoreURLPattern": "(^https?://)|(^#)|(^mailto:support@sourcegraph\\.com$)|(^chrome://)"
-     }
-   }
-   ```
+  ```json
+  {
+    "content": "../sourcegraph/doc",
+    "baseURLPath": "/",
+    "templates": "templates",
+    "assets": "assets",
+    "assetsBaseURLPath": "/assets/",
+    "check": {
+      "ignoreURLPattern": "(^https?://)|(^#)|(^mailto:support@sourcegraph\\.com$)|(^chrome://)"
+    }
+  }
+  ```
 - In the `DOCSITE_CONFIG` env var, using Zip archive URLs for `templates`, `assets`, and `content`, as in the following example:
-   ```
-   DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/","defaultContentBranch":"main"}' docsite serve
-   ```
+  ```
+  DOCSITE_CONFIG='{"templates":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/templates/","assets":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/main#*/doc/_resources/assets/","content":"https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/","baseURLPath":"/","assetsBaseURLPath":"/assets/","defaultContentBranch":"main"}' docsite serve
+  ```
 
 ## Development
 
 ### Release a new version
 
 1. Build the Docker image for `linux/amd64`:
+
    ```sh
    docker build -t sourcegraph/docsite .
 
    # Use buildx if you're on M1
    docker buildx build --platform linux/amd64 -t sourcegraph/docsite .
    ```
+
 1. Tag and push the image to Docker Hub and GCR:
    ```sh
    export VERSION= # e.g. v1.9.1

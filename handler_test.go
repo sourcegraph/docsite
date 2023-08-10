@@ -48,9 +48,10 @@ func TestSite_Handler(t *testing.T) {
 			})),
 		},
 		Base: &url.URL{Path: "/"},
-		Templates: httpfs.New(mapfs.New(map[string]string{
-			"root.html": `{{block "content" .}}empty{{end}}`,
-			"document.html": `
+		Templates: versionedFileSystem{
+			"": httpfs.New(mapfs.New(map[string]string{
+				"root.html": `{{block "content" .}}empty{{end}}`,
+				"document.html": `
 {{define "content" -}}
 {{with .Content}}
 	{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
@@ -60,7 +61,7 @@ func TestSite_Handler(t *testing.T) {
 	{{if .ContentPageNotFoundError}}content page not found{{end}}
 {{end}}
 {{- end}}`,
-			"search.html": `
+				"search.html": `
 {{define "content" -}}
 query "{{.Query}}":
 {{- range $dr := .Result.DocumentResults -}}
@@ -69,10 +70,13 @@ query "{{.Query}}":
 	{{end -}}
 {{end -}}
 {{- end}}`,
-		})),
-		Assets: httpfs.New(mapfs.New(map[string]string{
-			"g.gif": string(gifData),
-		})),
+			})),
+		},
+		Assets: versionedFileSystem{
+			"": httpfs.New(mapfs.New(map[string]string{
+				"g.gif": string(gifData),
+			})),
+		},
 		AssetsBase: &url.URL{Path: "/assets/"},
 		Redirects: map[string]*url.URL{
 			"/redirect-from": &url.URL{Path: "/redirect-to"},

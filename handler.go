@@ -1,6 +1,8 @@
 package docsite
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -41,8 +43,24 @@ func (s *Site) Handler() http.Handler {
 
 	// Serve assets using http.FileServer.
 	if s.AssetsBase != nil {
-		assetsFileServer := http.FileServer(s.Assets)
+		assets, err := s.Assets.OpenVersion(context.Background(), "")
+		if err != nil {
+			panic(fmt.Sprintf("failed to open assets: %v", err))
+		}
+
+		assetsFileServer := http.FileServer(assets)
 		m.Handle(s.AssetsBase.Path, http.StripPrefix(s.AssetsBase.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("s.AssetsBase.Path => im in", s.AssetsBase.Path)
+			fmt.Println("r.URL.Path => im in", r.URL.Path)
+			fmt.Println("r.URL.RawQuery=> im in", r.URL.RawQuery)
+			if r.URL.RawQuery != "" {
+				versionAssets, err := s.Assets.OpenVersion(r.Context(), r.URL.RawQuery)
+				if err != nil {
+					http.Error(w, "version assets error: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				assetsFileServer = http.FileServer(versionAssets)
+			}
 			setCacheControl(w, r, cacheMaxAgeLong)
 			assetsFileServer.ServeHTTP(w, r)
 		})))
@@ -115,6 +133,7 @@ func (s *Site) Handler() http.Handler {
 		}
 
 		if IsContentAsset(r.URL.Path) {
+			fmt.Println("r.URL.Path => im in", r.URL.Path)
 			// Serve non-Markdown content files (such as images) using http.FileServer.
 			content, err := s.Content.OpenVersion(r.Context(), contentVersion)
 			if err != nil {
@@ -122,7 +141,7 @@ func (s *Site) Handler() http.Handler {
 				if os.IsNotExist(err) {
 					http.Error(w, "content version not found", http.StatusNotFound)
 				} else {
-					http.Error(w, "content version error: "+err.Error(), http.StatusInternalServerError)
+					http.Error(w, "content version error 0: "+err.Error(), http.StatusInternalServerError)
 				}
 				return
 			}
@@ -140,7 +159,7 @@ func (s *Site) Handler() http.Handler {
 			// Version not found.
 			if !os.IsNotExist(err) {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
-				http.Error(w, "content version error: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "content version error 1: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 			data.ContentVersionNotFoundError = true

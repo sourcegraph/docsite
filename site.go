@@ -42,11 +42,11 @@ type Site struct {
 
 	// Templates is the file system containing the Go html/template templates used to render site
 	// pages
-	Templates http.FileSystem
+	Templates VersionedFileSystem
 
 	// Assets is the file system containing the site-wide static asset files (e.g., global styles
 	// and logo).
-	Assets http.FileSystem
+	Assets VersionedFileSystem
 
 	// AssetsBase is the base URL (sometimes only including the path, such as "/assets/") where the
 	// assets are available.
@@ -173,7 +173,7 @@ type PageData struct {
 
 // RenderContentPage renders a content page using the template.
 func (s *Site) RenderContentPage(page *PageData) ([]byte, error) {
-	tmpl, err := s.getTemplate(s.Templates, documentTemplateName, template.FuncMap{
+	tmpl, err := s.getTemplate(s.Templates, documentTemplateName, page.ContentVersion, template.FuncMap{
 		"markdown": func(page ContentPage) template.HTML {
 			return template.HTML(page.Doc.HTML)
 		},

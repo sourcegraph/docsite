@@ -87,10 +87,12 @@ title: foobar
 `
 		ctx := context.Background()
 		site := Site{
-			Templates: httpfs.New(mapfs.New(map[string]string{
-				"root.html":     "{{ .Content.Doc.Meta.Title }} Something",
-				"document.html": "",
-			})),
+			Templates: versionedFileSystem{
+				"": httpfs.New(mapfs.New(map[string]string{
+					"root.html":     "{{ .Content.Doc.Meta.Title }} Something",
+					"document.html": "",
+				})),
+			},
 			Content: versionedFileSystem{
 				"": httpfs.New(mapfs.New(map[string]string{
 					"index.md": md,
