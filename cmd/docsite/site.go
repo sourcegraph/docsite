@@ -141,7 +141,7 @@ func addSiteRedirect(site *docsite.Site, fromPath, toURLStr string) error {
 //
 // The format of each line is `PATH DESTINATION STATUSCODE` (e.g., `/my/old/page /my/new/page 308`).
 func addRedirectsFromAssets(site *docsite.Site) error {
-	assets, err := site.Assets.OpenVersion(context.Background(), "")
+	assets, err := site.GetResources("assets", "")
 	if err != nil {
 		return err
 	}
@@ -215,10 +215,10 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 	// 	return nil, nil, errors.WithMessage(err, "prefetching assets 1")
 	// }
 	//
-	assets := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/assets/", defaultBranch: "main"}
-	if _, err := assets.OpenVersion(context.Background(), ""); err != nil {
-		return nil, nil, errors.WithMessage(err, "downloading assets default version")
-	}
+	// assets := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/assets/", defaultBranch: "main"}
+	// if _, err := assets.OpenVersion(context.Background(), ""); err != nil {
+	// 	return nil, nil, errors.WithMessage(err, "downloading assets default version")
+	// }
 
 	// templatesUrl, err := getVersionUrl("https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/templates/", "main")
 	// if err != nil {
@@ -228,14 +228,14 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 	// if err := templates.fetchAndCache(); err != nil {
 	// 	return nil, nil, errors.WithMessage(err, "prefetching templates")
 	// }
-	templates := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/templates/", defaultBranch: "main"}
-	if _, err := assets.OpenVersion(context.Background(), ""); err != nil {
-		return nil, nil, errors.WithMessage(err, "downloading templates default version")
-	}
+	// templates := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/templates/", defaultBranch: "main"}
+	// if _, err := assets.OpenVersion(context.Background(), ""); err != nil {
+	// 	return nil, nil, errors.WithMessage(err, "downloading templates default version")
+	// }
 
-	site.Templates = templates
+	//site.Templates = templates
 	site.Content = content
-	site.Assets = assets
+	//site.Assets = assets
 	if err := addRedirectsFromAssets(site); err != nil {
 		return nil, nil, err
 	}
@@ -246,9 +246,8 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 type nonVersionedFileSystem struct{ http.FileSystem }
 
 func (fs nonVersionedFileSystem) OpenVersion(_ context.Context, version string) (http.FileSystem, error) {
-	fmt.Println("open version", version)
 	if version != "" {
-		return nil, errors.New("content versioning is not supported 1")
+		return nil, errors.New("content versioning is not supported")
 	}
 	return fs.FileSystem, nil
 }
@@ -272,22 +271,25 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 
 	// Read site data.
 	log.Println("# Downloading site data...")
+
 	// assets := newCachedFileSystem(func() (http.FileSystem, error) { return zipFileSystemFromURLWithDirFragment(config.Assets) })
 	// if err := assets.fetchAndCache(); err != nil {
 	// 	return nil, nil, errors.WithMessage(err, "prefetching assets 0")
 	// }
-	assets := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/assets/", defaultBranch: "main"}
-	if _, err := assets.OpenVersion(context.Background(), ""); err != nil {
-		return nil, nil, errors.WithMessage(err, "downloading assets default version")
-	}
+
+	// assets := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/assets/", defaultBranch: "main"}
+	// if _, err := assets.OpenVersion(context.Background(), ""); err != nil {
+	// 	return nil, nil, errors.WithMessage(err, "downloading assets default version")
+	// }
+
 	// templates := newCachedFileSystem(func() (http.FileSystem, error) { return zipFileSystemFromURLWithDirFragment(config.Templates) })
 	// if err := templates.fetchAndCache(); err != nil {
 	// 	return nil, nil, errors.WithMessage(err, "prefetching templates")
 	// }
-	templates := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/assets/", defaultBranch: "main"}
-	if _, err := templates.OpenVersion(context.Background(), ""); err != nil {
-		return nil, nil, errors.WithMessage(err, "downloading templates default version")
-	}
+	// templates := &versionedFileSystemURL{url: "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/_resources/assets/", defaultBranch: "main"}
+	// if _, err := templates.OpenVersion(context.Background(), ""); err != nil {
+	// 	return nil, nil, errors.WithMessage(err, "downloading templates default version")
+	// }
 
 	// Content is in a versioned file system.
 	content := &versionedFileSystemURL{url: config.Content, defaultBranch: config.DefaultContentBranch}
@@ -301,9 +303,9 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	site.Templates = templates
+	//site.Templates = assets
 	site.Content = content
-	site.Assets = assets
+	//site.Assets = assets
 	if err := addRedirectsFromAssets(site); err != nil {
 		return nil, nil, err
 	}
@@ -329,7 +331,6 @@ type fileSystemCacheEntry struct {
 const fileSystemCacheTTL = 5 * time.Minute
 
 func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version string) (http.FileSystem, error) {
-	fmt.Println("inside hack, version is", version)
 	// HACK(sqs): this works for codeload.github.com
 	if version == "" {
 		// HACK: Use a default branch instead of HEAD even though a branch is technically incorrect in the
@@ -371,16 +372,11 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 }
 
 func (fs *versionedFileSystemURL) fetchAndCacheVersion(ctx context.Context, version string) (http.FileSystem, error) {
-	// urlStr := fs.url
-	// if strings.Contains(urlStr, "$VERSION") && strings.Contains(urlStr, "github") && !strings.Contains(urlStr, "refs/heads/$VERSION") {
-	// 	return nil, fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", urlStr)
-	// }
-	// urlStr = strings.Replace(fs.url, "$VERSION", version, -1)
-
-	urlStr, err := getVersionUrl(fs.url, version)
-	if err != nil {
-		return nil, err
+	urlStr := fs.url
+	if strings.Contains(urlStr, "$VERSION") && strings.Contains(urlStr, "github") && !strings.Contains(urlStr, "refs/heads/$VERSION") {
+		return nil, fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", urlStr)
 	}
+	urlStr = strings.Replace(fs.url, "$VERSION", version, -1)
 
 	// HACK: Workaround for https://github.com/sourcegraph/sourcegraph/issues/3030. This assumes
 	// that tags all begin with "vN" where N is some number.
@@ -393,19 +389,9 @@ func (fs *versionedFileSystemURL) fetchAndCacheVersion(ctx context.Context, vers
 		return nil, err
 	}
 	fs.mu.Lock()
-	fmt.Println("made it this far", urlStr)
 	fs.cache[version] = &fileSystemCacheEntry{fs: vfs, at: time.Now()}
 	fs.mu.Unlock()
 	return vfs, nil
-}
-
-func getVersionUrl(url, version string) (string, error) {
-	if strings.Contains(url, "$VERSION") && strings.Contains(url, "github") && !strings.Contains(url, "refs/heads/$VERSION") {
-		return "", fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", url)
-	}
-	urlStr := strings.Replace(url, "$VERSION", version, -1)
-	fmt.Println("urlStr is", urlStr)
-	return urlStr, nil
 }
 
 func zipFileSystemFromURLWithDirFragment(urlStr string) (http.FileSystem, error) {

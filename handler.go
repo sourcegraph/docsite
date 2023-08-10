@@ -1,8 +1,6 @@
 package docsite
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -43,18 +41,15 @@ func (s *Site) Handler() http.Handler {
 
 	// Serve assets using http.FileServer.
 	if s.AssetsBase != nil {
-		assets, err := s.Assets.OpenVersion(context.Background(), "")
+		assets, err := s.GetResources("assets", "")
 		if err != nil {
-			panic(fmt.Sprintf("failed to open assets: %v", err))
+			panic("failed to open assets: " + err.Error())
 		}
 
 		assetsFileServer := http.FileServer(assets)
 		m.Handle(s.AssetsBase.Path, http.StripPrefix(s.AssetsBase.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("s.AssetsBase.Path => im in", s.AssetsBase.Path)
-			fmt.Println("r.URL.Path => im in", r.URL.Path)
-			fmt.Println("r.URL.RawQuery=> im in", r.URL.RawQuery)
 			if r.URL.RawQuery != "" {
-				versionAssets, err := s.Assets.OpenVersion(r.Context(), r.URL.RawQuery)
+				versionAssets, err := s.GetResources("assets", r.URL.RawQuery)
 				if err != nil {
 					http.Error(w, "version assets error: "+err.Error(), http.StatusInternalServerError)
 					return
@@ -133,7 +128,6 @@ func (s *Site) Handler() http.Handler {
 		}
 
 		if IsContentAsset(r.URL.Path) {
-			fmt.Println("r.URL.Path => im in", r.URL.Path)
 			// Serve non-Markdown content files (such as images) using http.FileServer.
 			content, err := s.Content.OpenVersion(r.Context(), contentVersion)
 			if err != nil {
@@ -208,7 +202,7 @@ func (s *Site) Handler() http.Handler {
 			respData, err = s.RenderContentPage(&data)
 			if err != nil {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
-				http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "template error 1: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}

@@ -82,7 +82,11 @@ func (s *Site) renderTextContent(ctx context.Context, page *ContentPage, node as
 
 func (s *Site) renderSearchPage(contentVersion, queryStr string, result *search.Result) ([]byte, error) {
 	query := query.Parse(queryStr)
-	tmpl, err := s.getTemplate(s.Templates, searchTemplateName, contentVersion, template.FuncMap{
+	templates, err := s.GetResources("templates", contentVersion)
+	if err != nil {
+		return nil, err
+	}
+	tmpl, err := s.getTemplate(templates, searchTemplateName, template.FuncMap{
 		"highlight": func(text string) template.HTML { return highlight(query, text) },
 	})
 	if err != nil {

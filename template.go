@@ -21,13 +21,7 @@ const (
 	searchTemplateName   = "search"
 )
 
-func (s *Site) getTemplate(templatesVFS VersionedFileSystem, name, contentVersion string, extraFuncs template.FuncMap) (*template.Template, error) {
-
-	templatesFS, err := templatesVFS.OpenVersion(context.Background(), contentVersion)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs template.FuncMap) (*template.Template, error) {
 	readFile := func(fs http.FileSystem, path string) ([]byte, error) {
 		f, err := fs.Open(path)
 		if err != nil {
@@ -44,26 +38,12 @@ func (s *Site) getTemplate(templatesVFS VersionedFileSystem, name, contentVersio
 	tmpl := template.New(rootTemplateName)
 	tmpl.Funcs(template.FuncMap{
 		"asset": func(path string) string {
-			assetUrl := s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
-			// fs, err := s.Content.OpenVersion(context.Background(), version)
-			// if err != nil {
-			// 	return assetUrl
-			// }
-
-			return assetUrl
+			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
 		},
 		"assetsFromVersion": func(version, path string) string {
-			assetUrl := s.AssetsBase.ResolveReference(&url.URL{Path: path, RawQuery: version}).String()
-			fmt.Println("assetUrl lalala: ", assetUrl)
-			fmt.Println("path & version: ", path, version)
-			return assetUrl
-		},
-		"isVersioned": func(version string) bool {
-			fmt.Println("isVersioned version: ", version)
-			return version != ""
+			return s.AssetsBase.ResolveReference(&url.URL{Path: path, RawQuery: version}).String()
 		},
 		"contentFileExists": func(version, path string) bool {
-			fmt.Println("how come version shows", version)
 			fs, err := s.Content.OpenVersion(context.Background(), version)
 			if err != nil {
 				return false
@@ -113,7 +93,6 @@ func (s *Site) getTemplate(templatesVFS VersionedFileSystem, name, contentVersio
 	for _, name := range names {
 		path := "/" + name + ".html"
 		data, err := ReadFile(templatesFS, path)
-		fmt.Println("path: ", path)
 		if name == rootTemplateName && os.IsNotExist(err) {
 			continue
 		}

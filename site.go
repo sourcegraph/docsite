@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	pathpkg "path"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -20,6 +21,15 @@ import (
 // VersionedFileSystem represents multiple versions of an http.FileSystem.
 type VersionedFileSystem interface {
 	OpenVersion(ctx context.Context, version string) (http.FileSystem, error)
+}
+
+type subdirFileSystem struct {
+	fs   http.FileSystem
+	path string
+}
+
+func (sd *subdirFileSystem) Open(path string) (http.File, error) {
+	return sd.fs.Open(filepath.Join(sd.path, path))
 }
 
 // Site represents a documentation site, including all of its templates, assets, and content.
@@ -40,14 +50,6 @@ type Site struct {
 	// host.
 	Root *url.URL
 
-	// Templates is the file system containing the Go html/template templates used to render site
-	// pages
-	Templates VersionedFileSystem
-
-	// Assets is the file system containing the site-wide static asset files (e.g., global styles
-	// and logo).
-	Assets VersionedFileSystem
-
 	// AssetsBase is the base URL (sometimes only including the path, such as "/assets/") where the
 	// assets are available.
 	AssetsBase *url.URL
@@ -61,6 +63,14 @@ type Site struct {
 	// SkipIndexURLPattern is a regexp matching URLs to ignore when searching. Any files that have a URL that match this
 	// pattern will be ignored from the search index.
 	SkipIndexURLPattern *regexp.Regexp
+}
+
+func (s *Site) GetResources(dir, version string) (http.FileSystem, error) {
+	c, err := s.Content.OpenVersion(context.Background(), version)
+	if err != nil {
+		return nil, err
+	}
+	return &subdirFileSystem{fs: c, path: "_resources/" + dir}, nil
 }
 
 // newContentPage creates a new ContentPage in the site.
@@ -173,7 +183,12 @@ type PageData struct {
 
 // RenderContentPage renders a content page using the template.
 func (s *Site) RenderContentPage(page *PageData) ([]byte, error) {
-	tmpl, err := s.getTemplate(s.Templates, documentTemplateName, page.ContentVersion, template.FuncMap{
+	templates, err := s.GetResources("templates", page.ContentVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl, err := s.getTemplate(templates, documentTemplateName, template.FuncMap{
 		"markdown": func(page ContentPage) template.HTML {
 			return template.HTML(page.Doc.HTML)
 		},
