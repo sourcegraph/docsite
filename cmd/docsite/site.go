@@ -170,8 +170,10 @@ func addRedirectsFromAssets(site *docsite.Site) error {
 	return nil
 }
 
-const DEBUG = true
-const CODEHOST_URL = "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/"
+const (
+	DEBUG        = false
+	CODEHOST_URL = "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/"
+)
 
 // openDocsiteFromConfig reads the documentation site data from a docsite.json file. All file system
 // paths in docsite.json are resolved relative to baseDir.
