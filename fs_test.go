@@ -3,12 +3,12 @@ package docsite
 import (
 	"context"
 	"net/http"
-	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/pkg/errors"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
@@ -48,7 +48,7 @@ type versionedFileSystem map[string]http.FileSystem
 func (vfs versionedFileSystem) OpenVersion(_ context.Context, version string) (http.FileSystem, error) {
 	fs, ok := vfs[version]
 	if !ok {
-		return nil, &os.PathError{Op: "OpenVersion", Path: version, Err: os.ErrNotExist}
+		return nil, errors.New("version not found")
 	}
 	return fs, nil
 }

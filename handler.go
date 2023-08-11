@@ -132,6 +132,7 @@ func (s *Site) Handler() http.Handler {
 			content, err := s.Content.OpenVersion(r.Context(), contentVersion)
 			if err != nil {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
+
 				if os.IsNotExist(err) {
 					http.Error(w, "content version not found", http.StatusNotFound)
 				} else {
@@ -153,7 +154,7 @@ func (s *Site) Handler() http.Handler {
 			// Version not found.
 			if !os.IsNotExist(err) {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
-				http.Error(w, "content version error 1: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "content version error: "+err.Error(), http.StatusNotFound)
 				return
 			}
 			data.ContentVersionNotFoundError = true
