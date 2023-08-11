@@ -82,7 +82,6 @@ func TestCheck(t *testing.T) {
 					"":                     httpfs.New(mapfs.New(test.pages)),
 					"_resources/templates": httpfs.New(mapfs.New(map[string]string{"document.html": "{{markdown .Content}}"})),
 				},
-				// Templates:             httpfs.New(mapfs.New(map[string]string{"document.html": "{{markdown .Content}}"})),
 				Base:                  &url.URL{Path: "/"},
 				CheckIgnoreURLPattern: regexp.MustCompile(`^//`),
 			}
