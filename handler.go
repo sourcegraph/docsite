@@ -136,7 +136,7 @@ func (s *Site) Handler() http.Handler {
 				if os.IsNotExist(err) {
 					http.Error(w, "content version not found", http.StatusNotFound)
 				} else {
-					http.Error(w, "content version error 0: "+err.Error(), http.StatusInternalServerError)
+					http.Error(w, "content version error: "+err.Error(), http.StatusInternalServerError)
 				}
 				return
 			}
@@ -203,7 +203,7 @@ func (s *Site) Handler() http.Handler {
 			respData, err = s.RenderContentPage(&data)
 			if err != nil {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
-				http.Error(w, "template error 1: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
