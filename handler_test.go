@@ -37,45 +37,52 @@ func TestSite_Handler(t *testing.T) {
 	site := Site{
 		Content: versionedFileSystem{
 			"": httpfs.New(mapfs.New(map[string]string{
-				"index.md":      "z [a/b](a/b/index.md)",
-				"a/b/index.md":  "e",
-				"a/b/c.md":      "d",
-				"a/b/img/f.gif": string(gifData),
+				"index.md":                       "z [a/b](a/b/index.md)",
+				"a/b/index.md":                   "e",
+				"a/b/c.md":                       "d",
+				"a/b/img/f.gif":                  string(gifData),
+				"_resources/templates/root.html": `{{block "content" .}}empty{{end}}`,
+				"_resources/templates/document.html": `
+					{{define "content" -}}
+						{{with .Content}}
+							{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
+							{{markdown .}}
+						{{else}}
+							{{if .ContentVersionNotFoundError}}content version not found{{end}}
+							{{if .ContentPageNotFoundError}}content page not found{{end}}
+						{{end}}
+				 	{{- end}}`,
+				"_resources/templates/search.html": `
+					 {{define "content" -}}
+					 query "{{.Query}}":
+					 {{- range $dr := .Result.DocumentResults -}}
+					 	{{range $sr := .SectionResults -}}
+					 		<a href="/{{$dr.ID}}#{{$sr.ID}}">{{range $sr.Excerpts}}{{.}}{{end}}</a>
+					 	{{end -}}
+					 {{end -}}
+					 {{- end}}`,
+				"_resources/assets/g.gif": string(gifData),
 			})),
 			"otherversion": httpfs.New(mapfs.New(map[string]string{
-				"index.md": "other version index",
-				"a.md":     "other version a",
+				"index.md":                       "other version index",
+				"a.md":                           "other version a",
+				"_resources/templates/root.html": `{{block "content" .}}empty{{end}}`,
+				"_resources/templates/document.html": `
+				{{define "content" -}}
+					{{with .Content}}
+						{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
+						{{markdown .}}
+					{{else}}
+						{{if .ContentVersionNotFoundError}}content version not found{{end}}
+						{{if .ContentPageNotFoundError}}content page not found{{end}}
+					{{end}}
+				 {{- end}}`,
 			})),
 		},
-		Base: &url.URL{Path: "/"},
-		Templates: httpfs.New(mapfs.New(map[string]string{
-			"root.html": `{{block "content" .}}empty{{end}}`,
-			"document.html": `
-{{define "content" -}}
-{{with .Content}}
-	{{range .Breadcrumbs}}{{.Label}} ({{.URL}}){{if not .IsActive}} / {{end}}{{end}}
-	{{markdown .}}
-{{else}}
-	{{if .ContentVersionNotFoundError}}content version not found{{end}}
-	{{if .ContentPageNotFoundError}}content page not found{{end}}
-{{end}}
-{{- end}}`,
-			"search.html": `
-{{define "content" -}}
-query "{{.Query}}":
-{{- range $dr := .Result.DocumentResults -}}
-	{{range $sr := .SectionResults -}}
-		<a href="/{{$dr.ID}}#{{$sr.ID}}">{{range $sr.Excerpts}}{{.}}{{end}}</a>
-	{{end -}}
-{{end -}}
-{{- end}}`,
-		})),
-		Assets: httpfs.New(mapfs.New(map[string]string{
-			"g.gif": string(gifData),
-		})),
+		Base:       &url.URL{Path: "/"},
 		AssetsBase: &url.URL{Path: "/assets/"},
 		Redirects: map[string]*url.URL{
-			"/redirect-from": &url.URL{Path: "/redirect-to"},
+			"/redirect-from": {Path: "/redirect-to"},
 		},
 	}
 	handler := site.Handler()
@@ -181,8 +188,7 @@ query "{{.Query}}":
 				req, _ := http.NewRequest("GET", "/@badversion", nil)
 				handler.ServeHTTP(rr, req)
 				checkResponseStatus(t, rr, http.StatusNotFound)
-				checkContentPageResponse(t, rr)
-				if want := "content version not found"; !strings.Contains(rr.Body.String(), want) {
+				if want := "content version error: version not found\n"; !strings.Contains(rr.Body.String(), want) {
 					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
 				}
 			})
@@ -193,8 +199,7 @@ query "{{.Query}}":
 				req, _ := http.NewRequest("GET", "/@badversion/a", nil)
 				handler.ServeHTTP(rr, req)
 				checkResponseStatus(t, rr, http.StatusNotFound)
-				checkContentPageResponse(t, rr)
-				if want := "content version not found"; !strings.Contains(rr.Body.String(), want) {
+				if want := "content version error: version not found\n"; !strings.Contains(rr.Body.String(), want) {
 					t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
 				}
 			})

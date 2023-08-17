@@ -41,8 +41,21 @@ func (s *Site) Handler() http.Handler {
 
 	// Serve assets using http.FileServer.
 	if s.AssetsBase != nil {
-		assetsFileServer := http.FileServer(s.Assets)
+		assets, err := s.GetResources("assets", "")
+		if err != nil {
+			panic("failed to open assets: " + err.Error())
+		}
+
+		assetsFileServer := http.FileServer(assets)
 		m.Handle(s.AssetsBase.Path, http.StripPrefix(s.AssetsBase.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.RawQuery != "" {
+				versionAssets, err := s.GetResources("assets", r.URL.RawQuery)
+				if err != nil {
+					http.Error(w, "version assets error: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				assetsFileServer = http.FileServer(versionAssets)
+			}
 			setCacheControl(w, r, cacheMaxAgeLong)
 			assetsFileServer.ServeHTTP(w, r)
 		})))
@@ -119,6 +132,7 @@ func (s *Site) Handler() http.Handler {
 			content, err := s.Content.OpenVersion(r.Context(), contentVersion)
 			if err != nil {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
+
 				if os.IsNotExist(err) {
 					http.Error(w, "content version not found", http.StatusNotFound)
 				} else {
@@ -140,7 +154,7 @@ func (s *Site) Handler() http.Handler {
 			// Version not found.
 			if !os.IsNotExist(err) {
 				w.Header().Set("Cache-Control", cacheMaxAge0)
-				http.Error(w, "content version error: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "content version error: "+err.Error(), http.StatusNotFound)
 				return
 			}
 			data.ContentVersionNotFoundError = true

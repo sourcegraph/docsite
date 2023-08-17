@@ -141,7 +141,12 @@ func addSiteRedirect(site *docsite.Site, fromPath, toURLStr string) error {
 //
 // The format of each line is `PATH DESTINATION STATUSCODE` (e.g., `/my/old/page /my/new/page 308`).
 func addRedirectsFromAssets(site *docsite.Site) error {
-	raw, err := docsite.ReadFile(site.Assets, "redirects")
+	assets, err := site.GetResources("assets", "")
+	if err != nil {
+		return err
+	}
+
+	raw, err := docsite.ReadFile(assets, "redirects")
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -165,6 +170,11 @@ func addRedirectsFromAssets(site *docsite.Site) error {
 	return nil
 }
 
+const (
+	DEBUG        = false
+	CODEHOST_URL = "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/"
+)
+
 // openDocsiteFromConfig reads the documentation site data from a docsite.json file. All file system
 // paths in docsite.json are resolved relative to baseDir.
 func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *docsiteConfig, error) {
@@ -184,12 +194,21 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 		}
 		return http.Dir(filepath.Join(baseDir, dir))
 	}
-	site.Templates = httpDirOrNil(config.Templates)
-	site.Content = nonVersionedFileSystem{httpDirOrNil(config.Content)}
-	site.Assets = httpDirOrNil(config.Assets)
+
+	if DEBUG {
+		content := newVersionedFileSystemURL(CODEHOST_URL, "master")
+		if _, err := content.OpenVersion(context.Background(), ""); err != nil {
+			return nil, nil, errors.WithMessage(err, "downloading content default version")
+		}
+		site.Content = content
+	} else {
+		site.Content = nonVersionedFileSystem{httpDirOrNil(config.Content)}
+	}
+
 	if err := addRedirectsFromAssets(site); err != nil {
 		return nil, nil, err
 	}
+
 	return site, &config, nil
 }
 
@@ -221,17 +240,10 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 
 	// Read site data.
 	log.Println("# Downloading site data...")
-	assets := newCachedFileSystem(func() (http.FileSystem, error) { return zipFileSystemFromURLWithDirFragment(config.Assets) })
-	if err := assets.fetchAndCache(); err != nil {
-		return nil, nil, errors.WithMessage(err, "prefetching assets")
-	}
-	templates := newCachedFileSystem(func() (http.FileSystem, error) { return zipFileSystemFromURLWithDirFragment(config.Templates) })
-	if err := templates.fetchAndCache(); err != nil {
-		return nil, nil, errors.WithMessage(err, "prefetching templates")
-	}
 
 	// Content is in a versioned file system.
 	content := &versionedFileSystemURL{url: config.Content, defaultBranch: config.DefaultContentBranch}
+
 	// Prefetch content at its default version. This ensures that the program exits if the content
 	// default version is unavailable.
 	if _, err := content.OpenVersion(context.Background(), ""); err != nil {
@@ -242,9 +254,7 @@ func openDocsiteFromEnv() (*docsite.Site, *docsiteConfig, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	site.Templates = templates
 	site.Content = content
-	site.Assets = assets
 	if err := addRedirectsFromAssets(site); err != nil {
 		return nil, nil, err
 	}
@@ -268,6 +278,10 @@ type fileSystemCacheEntry struct {
 }
 
 const fileSystemCacheTTL = 5 * time.Minute
+
+func newVersionedFileSystemURL(url, branch string) *versionedFileSystemURL {
+	return &versionedFileSystemURL{url: url, defaultBranch: branch}
+}
 
 func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version string) (http.FileSystem, error) {
 	// HACK(sqs): this works for codeload.github.com

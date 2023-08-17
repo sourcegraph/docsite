@@ -18,33 +18,59 @@ func TestCheck(t *testing.T) {
 	}{
 		"valid links": {
 			pages: map[string]string{
-				"index.md":   "[a](index.md) [b](b/index.md)",
-				"b/index.md": "[a](../index.md) [b](index.md)",
+				"index.md":                           "[a](index.md) [b](b/index.md)",
+				"b/index.md":                         "[a](../index.md) [b](index.md)",
+				"_resources/templates/root.html":     "{{markdown .Content}}",
+				"_resources/templates/document.html": "{{markdown .Content}}",
 			},
 			wantProblems: nil,
 		},
 		"non-relative link path": {
-			pages:        map[string]string{"index.md": "[a](/index.md)"},
+			pages: map[string]string{
+				"index.md":                           "[a](/index.md)",
+				"_resources/templates/root.html":     "{{markdown .Content}}",
+				"_resources/templates/document.html": "{{markdown .Content}}",
+			},
 			wantProblems: []string{"index.md: must use relative, not absolute, link to /index.md"},
 		},
 		"scheme-relative link": {
-			pages:        map[string]string{"index.md": "[a](//example.com/a)"},
+			pages: map[string]string{
+				"index.md":                           "[a](//example.com/a)",
+				"_resources/templates/root.html":     "{{markdown .Content}}",
+				"_resources/templates/document.html": "{{markdown .Content}}",
+			},
 			wantProblems: nil,
 		},
 		"broken link": {
-			pages:        map[string]string{"index.md": "[x](x.md)"},
+			pages: map[string]string{
+				"index.md":                           "[x](x.md)",
+				"_resources/templates/root.html":     "{{markdown .Content}}",
+				"_resources/templates/document.html": "{{markdown .Content}}",
+			},
 			wantProblems: []string{"index.md: broken link to /x"},
 		},
 		"link to equivalent path not .md file": {
-			pages:        map[string]string{"index.md": "[a](a) [a](a.md)", "a.md": ""},
+			pages: map[string]string{
+				"index.md": "[a](a) [a](a.md)", "a.md": "",
+				"_resources/templates/root.html":     "{{markdown .Content}}",
+				"_resources/templates/document.html": "{{markdown .Content}}",
+			},
 			wantProblems: []string{"index.md: must link to .md file, not a"},
 		},
 		"disconnected page": {
-			pages:        map[string]string{"x.md": "[x](x.md)"},
+			pages: map[string]string{
+				"x.md":                               "[x](x.md)",
+				"_resources/templates/root.html":     "{{markdown .Content}}",
+				"_resources/templates/document.html": "{{markdown .Content}}",
+			},
 			wantProblems: []string{"x.md: disconnected page (no inlinks from other pages)"},
 		},
 		"ignore disconnected page check": {
-			pages:        map[string]string{"x.md": "---\nignoreDisconnectedPageCheck: true\n---\n\n[x](x.md)"},
+			pages: map[string]string{
+				"x.md":                               "---\nignoreDisconnectedPageCheck: true\n---\n\n[x](x.md)",
+				"_resources/templates/root.html":     "{{markdown .Content}}",
+				"_resources/templates/document.html": "{{markdown .Content}}",
+			},
 			wantProblems: nil,
 		},
 	}
@@ -53,9 +79,9 @@ func TestCheck(t *testing.T) {
 			ctx := context.Background()
 			site := Site{
 				Content: versionedFileSystem{
-					"": httpfs.New(mapfs.New(test.pages)),
+					"":                     httpfs.New(mapfs.New(test.pages)),
+					"_resources/templates": httpfs.New(mapfs.New(map[string]string{"document.html": "{{markdown .Content}}"})),
 				},
-				Templates:             httpfs.New(mapfs.New(map[string]string{"document.html": "{{markdown .Content}}"})),
 				Base:                  &url.URL{Path: "/"},
 				CheckIgnoreURLPattern: regexp.MustCompile(`^//`),
 			}

@@ -40,6 +40,9 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 		"asset": func(path string) string {
 			return s.AssetsBase.ResolveReference(&url.URL{Path: path}).String()
 		},
+		"assetsFromVersion": func(version, path string) string {
+			return s.AssetsBase.ResolveReference(&url.URL{Path: path, RawQuery: version}).String()
+		},
 		"contentFileExists": func(version, path string) bool {
 			fs, err := s.Content.OpenVersion(context.Background(), version)
 			if err != nil {
