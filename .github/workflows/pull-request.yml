@@ -15,4 +15,5 @@ jobs:
           body-update-action: "suffix"
           body-uppercase-base-match: false
           body-uppercase-head-match: false
+          lowercase-branch: true
           repo-token: "${{ secrets.GH_PROJECTS_ACTION_TOKEN }}"
