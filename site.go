@@ -74,6 +74,8 @@ func (s *Site) GetResources(dir, version string) (http.FileSystem, error) {
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			return nil, err
 		}
 	}
 	return &subdirFileSystem{fs: c, path: "_resources/" + dir}, nil
