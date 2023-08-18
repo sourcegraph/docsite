@@ -69,9 +69,11 @@ func (s *Site) GetResources(dir, version string) (http.FileSystem, error) {
 	c, err := s.Content.OpenVersion(context.Background(), version)
 	if err != nil {
 		// if template dir doesn't exist, use the default one from main
-		c, err = s.Content.OpenVersion(context.Background(), "")
-		if err != nil {
-			return nil, err
+		if errors.Is(err, os.ErrNotExist) {
+			c, err = s.Content.OpenVersion(context.Background(), "")
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return &subdirFileSystem{fs: c, path: "_resources/" + dir}, nil
