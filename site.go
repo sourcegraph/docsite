@@ -68,7 +68,11 @@ type Site struct {
 func (s *Site) GetResources(dir, version string) (http.FileSystem, error) {
 	c, err := s.Content.OpenVersion(context.Background(), version)
 	if err != nil {
-		return nil, err
+		// if template dir doesn't exist, use the default one from main
+		c, err = s.Content.OpenVersion(context.Background(), "")
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &subdirFileSystem{fs: c, path: "_resources/" + dir}, nil
 }
