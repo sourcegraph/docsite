@@ -304,15 +304,8 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 	if ok && time.Since(e.at) > fileSystemCacheTTL {
 		log.Printf("# Cached site data for version %q expired after %s, refreshing in background", version, fileSystemCacheTTL)
 		go e.refresh.Do(func() {
-			ctx := context.Background() // use separate context because this runs in the background
-			if _, err := fs.fetchAndCacheVersion(ctx, version); err != nil {
+			if _, err := fs.fetchAndCacheVersion(version); err != nil {
 				log.Printf("# Error refreshing site data for version %q in background: %s", version, err)
-				// Cause the error to be user-visible on the next request so that external
-				// monitoring tools will detect the problem (and the site won't silently remain
-				// stale).
-				fs.mu.Lock()
-				delete(fs.cache, version)
-				fs.mu.Unlock()
 				return
 			}
 		})
@@ -321,10 +314,10 @@ func (fs *versionedFileSystemURL) OpenVersion(ctx context.Context, version strin
 	if ok {
 		return e.fs, nil
 	}
-	return fs.fetchAndCacheVersion(ctx, version)
+	return fs.fetchAndCacheVersion(version)
 }
 
-func (fs *versionedFileSystemURL) fetchAndCacheVersion(ctx context.Context, version string) (http.FileSystem, error) {
+func (fs *versionedFileSystemURL) fetchAndCacheVersion(version string) (http.FileSystem, error) {
 	urlStr := fs.url
 	if strings.Contains(urlStr, "$VERSION") && strings.Contains(urlStr, "github") && !strings.Contains(urlStr, "refs/heads/$VERSION") {
 		return nil, fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", urlStr)
