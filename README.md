@@ -132,7 +132,6 @@ The `docsite` tool requires site data to be available in any of the following wa
    docker tag sourcegraph/docsite sourcegraph/docsite:$VERSION
    docker push sourcegraph/docsite
    docker push sourcegraph/docsite:$VERSION
-   docker push gcr.io/sourcegraph-dogfood/docsite
    ```
 1. For internal Sourcegraph usage:
    1. Bump the deployed version by updating the SHA-256 image digest in [all files that define `sourcegraph/docsite:latest@sha256`](https://sourcegraph.sourcegraph.com/search?q=context:global+repo:%5Egithub.com/sourcegraph/*+%28NOT+repo:sourcegraph/kube-backup%29+index.docker.io/sourcegraph/docsite:v.*%40sha256:.*&patternType=regexp&sm=1&groupBy=path).
