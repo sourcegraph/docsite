@@ -130,7 +130,6 @@ The `docsite` tool requires site data to be available in any of the following wa
    ```sh
    export VERSION= # e.g. v1.9.1
    docker tag sourcegraph/docsite sourcegraph/docsite:$VERSION
-   docker tag sourcegraph/docsite gcr.io/sourcegraph-dogfood/docsite
    docker push sourcegraph/docsite
    docker push sourcegraph/docsite:$VERSION
    docker push gcr.io/sourcegraph-dogfood/docsite
