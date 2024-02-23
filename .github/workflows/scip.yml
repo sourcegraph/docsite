@@ -1,0 +1,33 @@
+name: SCIP
+'on':
+  push:
+    paths:
+      - '**.go'
+      - go.mod
+      - .github/workflows/lsif.yml
+env:
+  GOPROXY: https://proxy.golang.org
+jobs:
+  scip-go:
+    if: github.repository == 'sourcegraph/docsite'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get src-cli
+        run: curl -L https://sourcegraph.com/.api/src-cli/src_linux_amd64 -o /usr/local/bin/src;
+          chmod +x /usr/local/bin/src
+      - name: Set directory to safe for git
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      - name: Generate SCIP data
+        uses: sourcegraph/scip-go-action@master
+      - name: Upload SCIP data to sourcegraph.com
+        continue-on-error: true
+        uses: docker://sourcegraph/src-cli:latest
+        with:
+          args: lsif upload -github-token=${{ secrets.GITHUB_TOKEN }}
+      - name: Upload SCIP data to S2
+        continue-on-error: true
+        uses: docker://sourcegraph/src-cli:latest
+        with:
+          args: -endpoint=https://sourcegraph.sourcegraph.com lsif upload -github-token=${{
+            secrets.GITHUB_TOKEN }}
