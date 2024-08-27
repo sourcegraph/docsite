@@ -172,7 +172,7 @@ func addRedirectsFromAssets(site *docsite.Site) error {
 
 const (
 	DEBUG        = false
-	CODEHOST_URL = "https://codeload.github.com/sourcegraph/sourcegraph/zip/refs/heads/$VERSION#*/doc/"
+	CODEHOST_URL = "https://codeload.github.com/sourcegraph/sourcegraph-public-snapshot/zip/refs/heads/$VERSION#*/doc/"
 )
 
 // openDocsiteFromConfig reads the documentation site data from a docsite.json file. All file system
@@ -324,7 +324,7 @@ func (fs *versionedFileSystemURL) fetchAndCacheVersion(version string) (http.Fil
 	}
 	urlStr = strings.Replace(fs.url, "$VERSION", version, -1)
 
-	// HACK: Workaround for https://github.com/sourcegraph/sourcegraph/issues/3030. This assumes
+	// HACK: Workaround for https://github.com/sourcegraph/sourcegraph-public-snapshot/issues/3030. This assumes
 	// that tags all begin with "vN" where N is some number.
 	if len(version) >= 2 && version[0] == 'v' && unicode.IsDigit(rune(version[1])) {
 		urlStr = strings.Replace(urlStr, "refs/heads/", "refs/tags/", 1)
