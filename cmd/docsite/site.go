@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -36,7 +36,7 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 
 	paths := filepath.SplitList(*configPath)
 	for _, path := range paths {
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {
@@ -52,16 +52,17 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 // See ["Site data" in README.md](../../README.md#site-data) for documentation on this type's
 // fields.
 type docsiteConfig struct {
-	Content               string
-	ContentExcludePattern string
-	DefaultContentBranch  string
-	BaseURLPath           string
-	RootURL               string
-	Templates             string
-	Assets                string
-	AssetsBaseURLPath     string
-	Redirects             map[string]string
-	Check                 struct {
+	Content                     string
+	ContentExcludePattern       string
+	DefaultContentBranch        string
+	BaseURLPath                 string
+	RootURL                     string
+	Templates                   string
+	Assets                      string
+	AssetsBaseURLPath           string
+	ForceServeDownloadedContent bool
+	Redirects                   map[string]string
+	Check                       struct {
 		IgnoreURLPattern string
 	}
 	Search struct {
@@ -171,7 +172,6 @@ func addRedirectsFromAssets(site *docsite.Site) error {
 }
 
 const (
-	DEBUG        = false
 	CODEHOST_URL = "https://codeload.github.com/sourcegraph/sourcegraph-public-snapshot/zip/refs/heads/$VERSION#*/doc/"
 )
 
@@ -195,8 +195,10 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 		return http.Dir(filepath.Join(baseDir, dir))
 	}
 
-	if DEBUG {
+	log.Printf("config %v", config)
+	if config.ForceServeDownloadedContent {
 		content := newVersionedFileSystemURL(CODEHOST_URL, "master")
+		log.Printf("Force serving content from %s", CODEHOST_URL)
 		if _, err := content.OpenVersion(context.Background(), ""); err != nil {
 			return nil, nil, errors.WithMessage(err, "downloading content default version")
 		}
@@ -322,7 +324,7 @@ func (fs *versionedFileSystemURL) fetchAndCacheVersion(version string) (http.Fil
 	if strings.Contains(urlStr, "$VERSION") && strings.Contains(urlStr, "github") && !strings.Contains(urlStr, "refs/heads/$VERSION") {
 		return nil, fmt.Errorf("refusing to use insecure docsite configuration for multi-version-aware GitHub URLs: the URL pattern %q must include \"refs/heads/$VERSION\", not just \"$VERSION\" (see docsite README.md for more information)", urlStr)
 	}
-	urlStr = strings.Replace(fs.url, "$VERSION", version, -1)
+	urlStr = strings.ReplaceAll(fs.url, "$VERSION", version)
 
 	// HACK: Workaround for https://github.com/sourcegraph/sourcegraph-public-snapshot/issues/3030. This assumes
 	// that tags all begin with "vN" where N is some number.
@@ -361,7 +363,7 @@ func zipFileSystemAtURL(url, dir string) (http.FileSystem, error) {
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, &os.PathError{Op: "Get", Path: url, Err: fmt.Errorf("HTTP response status code %d", resp.StatusCode)}
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +397,7 @@ func mapFromZipArchive(z *zip.Reader, dir string) (map[string]string, error) {
 		if err != nil {
 			return nil, errors.WithMessagef(err, "open %q", zf.Name)
 		}
-		data, err := ioutil.ReadAll(f)
+		data, err := io.ReadAll(f)
 		f.Close()
 		if err != nil {
 			return nil, errors.WithMessagef(err, "read %q", zf.Name)

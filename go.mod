@@ -2,6 +2,7 @@ module github.com/sourcegraph/docsite
 
 require (
 	github.com/alecthomas/chroma v0.10.0
+	github.com/google/go-cmp v0.7.0
 	github.com/mozillazg/go-slugify v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
@@ -21,4 +22,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-go 1.18
+go 1.21
+
+toolchain go1.23.2
