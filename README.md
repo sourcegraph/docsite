@@ -52,6 +52,7 @@ The site data describes the location of its templates, assets, and content. It i
 - `redirects`: an object mapping URL paths (such as `/my/old/page`) to redirect destination URLs (such as `/my/new/page`).
 - `check` (optional): an object containing a single property `ignoreURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) of URLs to ignore when checking for broken URLs with `docsite check`.
 - `search` (optional): an object containing a single proprety `skipIndexURLPattern`, which is a [RE2 regexp](https://golang.org/pkg/regexp/syntax/) pattern that if matching any content file URL will remove that file from the search index.
+- `forceServedDownloadedContent` (optional) (dev):  While developing locally, you might want to see how docsite performs when it downloads the doc content remotely. With this set to true, docsite will download the content instead of serving from the filesystem
 
 The possible values for VFS URLs are:
 
@@ -114,6 +115,18 @@ The `docsite` tool requires site data to be available in any of the following wa
   ```
 
 ## Development
+
+## Running locally
+
+To run docsite locally and serve on port `:5080`, run:
+
+```shell
+go run ./cmd/docsite/... -config docsite.json serve
+```
+
+### Force serving downloaded content
+
+For certain use cases you want to have docsite download the docs content as it does with production configuration. To force this behaviour locally you can set `"forceServedDownloadedContent": true` in you `docsite.json` configuration
 
 ### Release a new version
 

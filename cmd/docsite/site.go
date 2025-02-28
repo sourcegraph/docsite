@@ -52,16 +52,17 @@ func siteFromFlags() (*docsite.Site, *docsiteConfig, error) {
 // See ["Site data" in README.md](../../README.md#site-data) for documentation on this type's
 // fields.
 type docsiteConfig struct {
-	Content               string
-	ContentExcludePattern string
-	DefaultContentBranch  string
-	BaseURLPath           string
-	RootURL               string
-	Templates             string
-	Assets                string
-	AssetsBaseURLPath     string
-	Redirects             map[string]string
-	Check                 struct {
+	Content                     string
+	ContentExcludePattern       string
+	DefaultContentBranch        string
+	BaseURLPath                 string
+	RootURL                     string
+	Templates                   string
+	Assets                      string
+	AssetsBaseURLPath           string
+	ForceServeDownloadedContent bool
+	Redirects                   map[string]string
+	Check                       struct {
 		IgnoreURLPattern string
 	}
 	Search struct {
@@ -171,7 +172,6 @@ func addRedirectsFromAssets(site *docsite.Site) error {
 }
 
 const (
-	DEBUG        = false
 	CODEHOST_URL = "https://codeload.github.com/sourcegraph/sourcegraph-public-snapshot/zip/refs/heads/$VERSION#*/doc/"
 )
 
@@ -195,8 +195,10 @@ func openDocsiteFromConfig(configData []byte, baseDir string) (*docsite.Site, *d
 		return http.Dir(filepath.Join(baseDir, dir))
 	}
 
-	if DEBUG {
+	log.Printf("config %v", config)
+	if config.ForceServeDownloadedContent {
 		content := newVersionedFileSystemURL(CODEHOST_URL, "master")
+		log.Printf("Force serving content from %s", CODEHOST_URL)
 		if _, err := content.OpenVersion(context.Background(), ""); err != nil {
 			return nil, nil, errors.WithMessage(err, "downloading content default version")
 		}
