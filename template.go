@@ -1,6 +1,7 @@
 package docsite
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html/template"
@@ -19,7 +20,20 @@ const (
 	rootTemplateName     = "root"
 	documentTemplateName = "document"
 	searchTemplateName   = "search"
+	metaRobots           = `<meta name="robots" content="noindex,nofollow">`
+	metaProperty         = `<meta property="og:locale" content="en_EN">`
 )
+
+func patchTemplateForSEO(data []byte) []byte {
+	if bytes.Contains(data, []byte(metaRobots)) {
+		return data
+	}
+
+	content := string(data)
+	content = strings.Replace(content, metaProperty, fmt.Sprintf("%s\n  %s", metaProperty, metaRobots), 1)
+
+	return []byte(content)
+}
 
 func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs template.FuncMap) (*template.Template, error) {
 	readFile := func(fs http.FileSystem, path string) ([]byte, error) {
@@ -98,6 +112,11 @@ func (s *Site) getTemplate(templatesFS http.FileSystem, name string, extraFuncs 
 		}
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("read template %s", path))
+		}
+		if name == documentTemplateName {
+			// We need to patch the template, since if we're loading an old version the template won't have the
+			// nofollow, noindex seo tag
+			data = patchTemplateForSEO(data)
 		}
 		if _, err := tmpl.Parse(string(data)); err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("parse template %s", path))
