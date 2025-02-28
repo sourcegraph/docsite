@@ -17,6 +17,7 @@ jobs:
         PACKAGE: ./cmd/docsite
         GOARCH: amd64
         GOOS: linux
+        GOFLAGS: -buildvcs=false
   release-darwin-amd64:
     name: Release darwin/amd64
     runs-on: ubuntu-latest
@@ -30,6 +31,7 @@ jobs:
         PACKAGE: ./cmd/docsite
         GOARCH: amd64
         GOOS: darwin
+        GOFLAGS: -buildvcs=false
   release-darwin-arm64:
     name: Release darwin/arm64
     runs-on: ubuntu-latest
@@ -43,6 +45,7 @@ jobs:
         PACKAGE: ./cmd/docsite
         GOARCH: arm64
         GOOS: darwin
+        GOFLAGS: -buildvcs=false
   docker:
     name: Build and push image
     runs-on: ubuntu-latest
