@@ -1,5 +1,6 @@
 name: Go release
 on:
+  workflow_dispatch: {}
   release:
     types: [published]
 jobs:
