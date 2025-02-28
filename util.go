@@ -1,7 +1,7 @@
 package docsite
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -11,5 +11,5 @@ func ReadFile(fs http.FileSystem, path string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
