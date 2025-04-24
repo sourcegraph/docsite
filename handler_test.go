@@ -263,4 +263,60 @@ func TestSite_Handler(t *testing.T) {
 			t.Errorf("got body %q, want contains %q", rr.Body.String(), want)
 		}
 	})
+	
+	t.Run("version redirects", func(t *testing.T) {
+		t.Run("version 5.1 - no redirect", func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/@5.1", nil)
+			handler.ServeHTTP(rr, req)
+			checkResponseStatus(t, rr, http.StatusNotFound)
+		})
+
+		t.Run("version 5.2 - no redirect", func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/@5.2", nil)
+			handler.ServeHTTP(rr, req)
+			checkResponseStatus(t, rr, http.StatusNotFound)
+		})
+
+		t.Run("version 5.3 - should redirect", func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/@5.3", nil)
+			handler.ServeHTTP(rr, req)
+			checkResponseStatus(t, rr, http.StatusPermanentRedirect)
+			if got, want := rr.Header().Get("Location"), "https://www.sourcegraph.com/docs/5.3/"; got != want {
+				t.Errorf("got redirect Location %q, want %q", got, want)
+			}
+		})
+
+		t.Run("version with path - should redirect with path", func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/@5.3/some/path", nil)
+			handler.ServeHTTP(rr, req)
+			checkResponseStatus(t, rr, http.StatusPermanentRedirect)
+			if got, want := rr.Header().Get("Location"), "https://www.sourcegraph.com/docs/5.3/some/path"; got != want {
+				t.Errorf("got redirect Location %q, want %q", got, want)
+			}
+		})
+
+		t.Run("major version > 5 - should redirect", func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/@6.0", nil)
+			handler.ServeHTTP(rr, req)
+			checkResponseStatus(t, rr, http.StatusPermanentRedirect)
+			if got, want := rr.Header().Get("Location"), "https://www.sourcegraph.com/docs/6.0/"; got != want {
+				t.Errorf("got redirect Location %q, want %q", got, want)
+			}
+		})
+
+		t.Run("version with patch - should redirect", func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/@5.3.1", nil)
+			handler.ServeHTTP(rr, req)
+			checkResponseStatus(t, rr, http.StatusPermanentRedirect)
+			if got, want := rr.Header().Get("Location"), "https://www.sourcegraph.com/docs/5.3.1/"; got != want {
+				t.Errorf("got redirect Location %q, want %q", got, want)
+			}
+		})
+	})
 }

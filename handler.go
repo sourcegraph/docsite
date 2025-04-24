@@ -6,8 +6,29 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 )
+
+// versionPattern matches version strings like @5.2, @5.2.0, etc. and captures major and minor version numbers
+var versionPattern = regexp.MustCompile(`^@(\d+)\.(\d+)(?:\.(\d+))?$`)
+
+// shouldRedirectVersion returns true for versions ≥ 5.3 (format: @major.minor[.patch])
+func shouldRedirectVersion(version string) bool {
+	matches := versionPattern.FindStringSubmatch(version)
+	if len(matches) < 3 {
+		return false
+	}
+	
+	major, err1 := strconv.Atoi(matches[1])
+	minor, err2 := strconv.Atoi(matches[2])
+	if err1 != nil || err2 != nil {
+		return false
+	}
+	
+	return major > 5 || (major == 5 && minor >= 3)
+}
 
 // Handler returns an http.Handler that serves the site.
 func (s *Site) Handler() http.Handler {
@@ -124,6 +145,18 @@ func (s *Site) Handler() http.Handler {
 				urlPath = r.URL.Path[1+end+1:]
 				contentVersion = r.URL.Path[1 : 1+end]
 			}
+			
+			// Redirect versions ≥ 5.3 to new docs domain with path preservation
+			version := "@" + contentVersion
+			if shouldRedirectVersion(version) {
+				newURL := "https://www.sourcegraph.com/docs/" + contentVersion + "/"
+				if urlPath != "" {
+					newURL += urlPath
+				}
+				http.Redirect(w, r, newURL, http.StatusPermanentRedirect)
+				return
+			}
+			
 			r = requestShallowCopyWithURLPath(r, urlPath)
 		}
 
