@@ -1,60 +1,74 @@
 name: Go release
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag'
+        default: ''
+        required: true
+        type: string
   release:
     types: [published]
 jobs:
-  release-linux-amd64:
-    name: Release linux/amd64
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: Compile and release
-      uses: sourcegraph/go-release.action@v1.3.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CGO_ENABLED: 0
-        PACKAGE: ./cmd/docsite
-        GOARCH: amd64
-        GOOS: linux
-        GOFLAGS: -buildvcs=false
-  release-darwin-amd64:
-    name: Release darwin/amd64
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: Compile and release
-      uses: sourcegraph/go-release.action@v1.3.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CGO_ENABLED: 0
-        PACKAGE: ./cmd/docsite
-        GOARCH: amd64
-        GOOS: darwin
-        GOFLAGS: -buildvcs=false
-  release-darwin-arm64:
-    name: Release darwin/arm64
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: Compile and release
-      uses: sourcegraph/go-release.action@v1.3.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CGO_ENABLED: 0
-        PACKAGE: ./cmd/docsite
-        GOARCH: arm64
-        GOOS: darwin
-        GOFLAGS: -buildvcs=false
+  # release-linux-amd64:
+  #   name: Release linux/amd64
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@master
+  #     with:
+  #         ref: ${{ github.event.release.tag_name || inputs.release_tag }}
+  #   - name: Compile and release
+  #     uses: sourcegraph/go-release.action@v1.3.0
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       CGO_ENABLED: 0
+  #       PACKAGE: ./cmd/docsite
+  #       GOARCH: amd64
+  #       GOOS: linux
+  #       GOFLAGS: -buildvcs=false
+  # release-darwin-amd64:
+  #   name: Release darwin/amd64
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@master
+  #     with:
+  #         ref: ${{ github.event.release.tag_name || inputs.release_tag }}
+  #   - name: Compile and release
+  #     uses: sourcegraph/go-release.action@v1.3.0
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       CGO_ENABLED: 0
+  #       PACKAGE: ./cmd/docsite
+  #       GOARCH: amd64
+  #       GOOS: darwin
+  #       GOFLAGS: -buildvcs=false
+  # release-darwin-arm64:
+  #   name: Release darwin/arm64
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@master
+  #     with:
+  #         ref: ${{ github.event.release.tag_name || inputs.release_tag }}
+  #   - name: Compile and release
+  #     uses: sourcegraph/go-release.action@v1.3.0
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       CGO_ENABLED: 0
+  #       PACKAGE: ./cmd/docsite
+  #       GOARCH: arm64
+  #       GOOS: darwin
+  #       GOFLAGS: -buildvcs=false
   docker:
     name: Build and push image
     runs-on: ubuntu-latest
     steps:
       - name: checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.release_tag }}
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_PASSWORD }}
           password: ${{ secrets.DOCKER_USERNAME }}
@@ -66,4 +80,4 @@ jobs:
           push: true
           tags: |
             sourcegraph/docsite:latest
-            sourcegraph/docsite:${{ github.event.release.tag_name }}
+            sourcegraph/docsite:${{ github.event.release.tag_name || inputs.release_tag }}
