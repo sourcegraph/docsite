@@ -149,9 +149,9 @@ func (s *Site) Handler() http.Handler {
 			// Redirect versions ≥ 5.2 to new docs domain with path preservation
 			version := "@" + contentVersion
 			if shouldRedirectVersion(version) {
-				newURL := "https://www.sourcegraph.com/docs/" + contentVersion + "/"
+				newURL := "https://www.sourcegraph.com/docs/@" + contentVersion
 				if urlPath != "" {
-					newURL += urlPath
+					newURL += "/" + urlPath
 				}
 				http.Redirect(w, r, newURL, http.StatusPermanentRedirect)
 				return
