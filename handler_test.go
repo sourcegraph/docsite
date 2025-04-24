@@ -272,11 +272,14 @@ func TestSite_Handler(t *testing.T) {
 			checkResponseStatus(t, rr, http.StatusNotFound)
 		})
 
-		t.Run("version 5.2 - no redirect", func(t *testing.T) {
+		t.Run("version 5.2 - should redirect", func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", "/@5.2", nil)
 			handler.ServeHTTP(rr, req)
-			checkResponseStatus(t, rr, http.StatusNotFound)
+			checkResponseStatus(t, rr, http.StatusPermanentRedirect)
+			if got, want := rr.Header().Get("Location"), "https://www.sourcegraph.com/docs/5.2/"; got != want {
+				t.Errorf("got redirect Location %q, want %q", got, want)
+			}
 		})
 
 		t.Run("version 5.3 - should redirect", func(t *testing.T) {
