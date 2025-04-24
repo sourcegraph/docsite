@@ -14,7 +14,7 @@ import (
 // versionPattern matches version strings like @5.2, @5.2.0, etc. and captures major and minor version numbers
 var versionPattern = regexp.MustCompile(`^@(\d+)\.(\d+)(?:\.(\d+))?$`)
 
-// shouldRedirectVersion returns true for versions ≥ 5.3 (format: @major.minor[.patch])
+// shouldRedirectVersion returns true for versions ≥ 5.2 (format: @major.minor[.patch])
 func shouldRedirectVersion(version string) bool {
 	matches := versionPattern.FindStringSubmatch(version)
 	if len(matches) < 3 {
@@ -27,7 +27,7 @@ func shouldRedirectVersion(version string) bool {
 		return false
 	}
 	
-	return major > 5 || (major == 5 && minor >= 3)
+	return major > 5 || (major == 5 && minor >= 2)
 }
 
 // Handler returns an http.Handler that serves the site.
@@ -146,7 +146,7 @@ func (s *Site) Handler() http.Handler {
 				contentVersion = r.URL.Path[1 : 1+end]
 			}
 			
-			// Redirect versions ≥ 5.3 to new docs domain with path preservation
+			// Redirect versions ≥ 5.2 to new docs domain with path preservation
 			version := "@" + contentVersion
 			if shouldRedirectVersion(version) {
 				newURL := "https://www.sourcegraph.com/docs/" + contentVersion + "/"
