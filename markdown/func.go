@@ -3,6 +3,7 @@ package markdown
 import (
 	"bytes"
 	"context"
+	stderrors "errors"
 	"fmt"
 	"io"
 	"strings"
@@ -18,7 +19,7 @@ func EvalMarkdownFuncs(ctx context.Context, htmlFragment []byte, opt Options) ([
 	for {
 		tt := z.Next()
 		if tt == html.ErrorToken {
-			if z.Err() == io.EOF {
+			if stderrors.Is(z.Err(), io.EOF) {
 				break
 			}
 			return nil, errors.WithMessage(z.Err(), "while evaluating Markdown function tags")
@@ -91,7 +92,7 @@ func consumeUntilCloseTag(z *html.Tokenizer, funcName string) error {
 	for {
 		tt := z.Next()
 		if tt == html.ErrorToken {
-			if z.Err() == io.EOF {
+			if stderrors.Is(z.Err(), io.EOF) {
 				return fmt.Errorf("tag for Markdown function %q is never closed", funcName)
 			}
 			return errors.WithMessagef(z.Err(), "while scanning for Markdown function close tag %q", funcName)

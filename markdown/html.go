@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/url"
 	"strings"
@@ -30,7 +31,7 @@ func rewriteRelativeURLsInHTML(htmlFragment []byte, opt Options) ([]byte, error)
 	var buf bytes.Buffer
 	for {
 		tt := z.Next()
-		if tt == html.ErrorToken && z.Err() == io.EOF {
+		if tt == html.ErrorToken && errors.Is(z.Err(), io.EOF) {
 			break
 		}
 		tok := z.Token()
@@ -83,7 +84,7 @@ func isOnlyHTMLComment(htmlFragment []byte) bool {
 				continue
 			}
 		}
-		if tt == html.ErrorToken && z.Err() == io.EOF {
+		if tt == html.ErrorToken && errors.Is(z.Err(), io.EOF) {
 			break
 		}
 		return false
