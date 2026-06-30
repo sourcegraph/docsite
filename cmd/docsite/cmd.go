@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -42,12 +43,7 @@ func (c *command) matches(name string) bool {
 	if name == c.FlagSet.Name() {
 		return true
 	}
-	for _, alias := range c.aliases {
-		if name == alias {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.aliases, name)
 }
 
 // commander represents a top-level command with subcommands.
