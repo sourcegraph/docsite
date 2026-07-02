@@ -151,7 +151,7 @@ func addRedirectsFromAssets(site *docsite.Site) error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	for _, line := range bytes.Split(raw, []byte("\n")) {
+	for line := range bytes.SplitSeq(raw, []byte("\n")) {
 		line = bytes.TrimSpace(line)
 		if len(line) == 0 || line[0] == '#' {
 			continue

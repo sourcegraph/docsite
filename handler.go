@@ -20,13 +20,13 @@ func shouldRedirectVersion(version string) bool {
 	if len(matches) < 3 {
 		return false
 	}
-	
+
 	major, err1 := strconv.Atoi(matches[1])
 	minor, err2 := strconv.Atoi(matches[2])
 	if err1 != nil || err2 != nil {
 		return false
 	}
-	
+
 	return major > 5 || (major == 5 && minor >= 2)
 }
 
@@ -145,7 +145,7 @@ func (s *Site) Handler() http.Handler {
 				urlPath = r.URL.Path[1+end+1:]
 				contentVersion = r.URL.Path[1 : 1+end]
 			}
-			
+
 			// Redirect versions ≥ 5.2 to new docs domain with path preservation
 			version := "@" + contentVersion
 			if shouldRedirectVersion(version) {
@@ -156,7 +156,7 @@ func (s *Site) Handler() http.Handler {
 				http.Redirect(w, r, newURL, http.StatusPermanentRedirect)
 				return
 			}
-			
+
 			r = requestShallowCopyWithURLPath(r, urlPath)
 		}
 
@@ -196,8 +196,8 @@ func (s *Site) Handler() http.Handler {
 			filePath, fileData, err := resolveAndReadAll(content, r.URL.Path)
 			if err == nil {
 				// Strip trailing slashes for consistency.
-				if strings.HasSuffix(r.URL.Path, "/") {
-					http.Redirect(w, r, path.Join(basePath, strings.TrimSuffix(r.URL.Path, "/")), http.StatusMovedPermanently)
+				if before, ok := strings.CutSuffix(r.URL.Path, "/"); ok {
+					http.Redirect(w, r, path.Join(basePath, before), http.StatusMovedPermanently)
 					return
 				}
 
