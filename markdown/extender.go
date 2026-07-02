@@ -115,7 +115,7 @@ func (r *nodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 
 		var val []byte
 		l := n.Segments.Len()
-		for i := 0; i < l; i++ {
+		for i := range l {
 			segment := n.Segments.At(i)
 			val = append(val, segment.Value(source)...)
 		}
