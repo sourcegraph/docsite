@@ -29,10 +29,7 @@ func excerpt(text []byte, start, end, maxChars int) []byte {
 	}
 
 	if index := bytes.LastIndexAny(text[origEnd:end], breakChars); index != -1 {
-		end = origEnd + index + 1
-		if end > len(text) {
-			end = len(text)
-		}
+		end = min(origEnd+index+1, len(text))
 	}
 
 	return bytes.TrimSpace(text[start:end])

@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:1.26.4-alpine as builder
 ENV GO111MODULE on
 COPY . $GOPATH/src/github.com/sourcegraph/docsite
 WORKDIR $GOPATH/src/github.com/sourcegraph/docsite

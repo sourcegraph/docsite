@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"strings"
 	"text/template"
@@ -108,9 +109,7 @@ func createMarkdownFuncs(site *Site) markdown.FuncMap {
 			return string(doc.HTML), nil
 		},
 	}
-	for name, f := range testMarkdownFuncs {
-		m[name] = f
-	}
+	maps.Copy(m, testMarkdownFuncs)
 	return m
 }
 
